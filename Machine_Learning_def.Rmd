@@ -16,13 +16,7 @@ output:
 
 
 ```{r, lectura_datos, include=FALSE}
-
-#datos <- read.csv("C:/Users/natal/OneDrive/Documentos/0_MIS_DOCUMENTOS/2.MÁSTER/2_Curso_2019-2020/Primer_Cuatrimestre/2.Fundamentos_de_Análisis/BloqueIV_Métodos/Práctica final/git/kc_house_data.csv")
-
-datos <- read.csv("C:/Users/Beatriz/Desktop/Máster/1er trimestre/Fundamentos/Parte 4_Métodos de Análisis de datos/Prac_git/kc_house_data.csv")
-
-
-#datos <- read.csv("C:/Users/susi_/Desktop/R/Practica_Fundamentos_R/Repositorios git/kc_house_data.csv")
+datos <- read.csv("kc_house_data.csv")
 ```
 
 ```{r, setup, include=FALSE}
@@ -60,10 +54,10 @@ library(class)
 ```{r}
 #Categorizamos la variable respuesta price:
 quantile(datos$price, prob=seq(0, 1, length = 5))
-datos$price_categ1 <- cut(datos$price, breaks = c(0, 500000, 100000000), labels = c("B1", "A1"))
+datos$price_categ1 <- cut(datos$price, breaks = c(0, 500000, 100000000), labels = c("B1", "C1"))
 table(datos$price_categ1)
 
-datos$price_categ2 <- cut(datos$price, breaks = c(0, 330000, 650000, 100000000), labels = c("B2","M2", "A2"))
+datos$price_categ2 <- cut(datos$price, breaks = c(0, 330000, 650000, 100000000), labels = c("B2","M2", "C2"))
 table(datos$price_categ2)
 
 ```
@@ -237,8 +231,10 @@ A continuación realizamos el clustering:
 
 ```{r}
 datos_scale<- as.data.frame(scale(datos_train_numeric))
+set.seed(1234)
 modelkm1 <- kmeans(datos_scale, centers=2)
-modelkm2 <- kmeans(datos_scale, centers=3)
+
+#modelkm2 <- kmeans(datos_scale, centers=3)
 #modelkm
 
 #table(modelkm2$cluster) #asignación de observación a los cluster
@@ -256,20 +252,35 @@ colores11 = colores1[datos_train_limpio$price_categ1]
 plot(prcomp(datos_train_numeric, scale = T)$x[,1:2], type="n")
 text(prcomp(datos_train_numeric, scale = T)$x[,1:2], as.character(modelkm1$cluster), col=colores11)
 
-colores2= c("red","blue","green")
-colores22 = colores2[datos_train_limpio$price_categ2]
-
-plot(prcomp(datos_train_numeric, scale = T)$x[,1:2], type="n")
-text(prcomp(datos_train_numeric, scale = T)$x[,1:2], as.character(modelkm2$cluster), col=colores22)
+# colores2= c("red","blue","green")
+# colores22 = colores2[datos_train_limpio$price_categ2]
+# 
+# plot(prcomp(datos_train_numeric, scale = T)$x[,1:2], type="n")
+# text(prcomp(datos_train_numeric, scale = T)$x[,1:2], as.character(modelkm2$cluster), col=colores22)
 ```
 
 ```{r}
 tabla2=table(datos_train_limpio[,15],modelkm1$cluster)
+#caras
 pred.means2=tabla2[2,2]/(tabla2[2,2]+tabla2[1,2])
 rec.means2=tabla2[2,2]/(tabla2[2,2]+tabla2[2,1])
-F_medida.means2=(5*pred.means2*rec.means2)/(4*pred.means2+rec.means2)
+F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
 F_medida.means2
 tabla2
+```
+
+```{r}
+#baratas
+pred.means2=tabla2[1,1]/(tabla2[1,1]+tabla2[2,1])
+rec.means2=tabla2[1,1]/(tabla2[1,1]+tabla2[1,2])
+F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_medida.means2
+tabla2
+```
+
+```{r}
+accuracy = (tabla2[1,1]+tabla2[2,2]) / (tabla2[1,1]+tabla2[1,2]+tabla2[2,1]+tabla2[2,2])
+accuracy
 ```
 
 #### Test
@@ -305,6 +316,7 @@ rec.knn.train2=tabla.knn.train2[2,2]/(tabla.knn.train2[2,2]+tabla.knn.train2[2,1
 F_medida.knn.train2=(5*pred.knn.train2*rec.knn.train2)/(4*pred.knn.train2+rec.knn.train2)
 F_medida.knn.train2
 tabla.knn.train2
+
 ```
 
 #### Test
@@ -313,7 +325,15 @@ tabla.knn.train2
 
 # Ideas
 
+cambiar el modelo para que aumente 1000 más la variable respuesta
+
 ## para estructurarlo
 
 Primero transformaciones de train, test validacion
 Luego cada modelo por separado con su train y test y validacion
+
+## objetivo
+
+## concluisones
+
+* nos quedamos con la acuracy ya que es la única medida que tiene en cuenta los aciertos de las casas caras y de las baratas (la F_medida no tiene en cuenta los TN y la sensibilidad y especificidad solo tienen en cuenta que acierte las caras o las baratas pero no que acierte en ambas)
