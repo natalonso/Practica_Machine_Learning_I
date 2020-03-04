@@ -1,0 +1,319 @@
+---
+title: "Machine learning i"
+author: "Natalia Alonso, Beatriz Martín y Susana Albarrán"
+date: "7/2/2020"
+
+fig_caption: yes
+
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+    theme: flatly
+    code_folding: show
+---
+
+
+```{r, lectura_datos, include=FALSE}
+
+#datos <- read.csv("C:/Users/natal/OneDrive/Documentos/0_MIS_DOCUMENTOS/2.MÁSTER/2_Curso_2019-2020/Primer_Cuatrimestre/2.Fundamentos_de_Análisis/BloqueIV_Métodos/Práctica final/git/kc_house_data.csv")
+
+datos <- read.csv("C:/Users/Beatriz/Desktop/Máster/1er trimestre/Fundamentos/Parte 4_Métodos de Análisis de datos/Prac_git/kc_house_data.csv")
+
+
+#datos <- read.csv("C:/Users/susi_/Desktop/R/Practica_Fundamentos_R/Repositorios git/kc_house_data.csv")
+```
+
+```{r, setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(lattice)
+library(dplyr)
+library(VIM)
+library(mice)
+library(DMwR2)
+library(knitr)
+library(kableExtra)
+library(htmltools)
+library(bsplus)
+library(RColorBrewer)
+library(GGally)
+library(ggplot2)
+library(corrplot)
+library(vcd)
+library(DT)
+library(gridExtra)
+library(jpeg)
+library(car)
+library(leaflet)
+library(scales)
+library(cowplot)
+library(useful)
+library(rpart)
+library(rattle)
+library(class)
+```
+
+
+# Categorización del precio
+
+```{r}
+#Categorizamos la variable respuesta price:
+quantile(datos$price, prob=seq(0, 1, length = 5))
+datos$price_categ1 <- cut(datos$price, breaks = c(0, 500000, 100000000), labels = c("B1", "A1"))
+table(datos$price_categ1)
+
+datos$price_categ2 <- cut(datos$price, breaks = c(0, 330000, 650000, 100000000), labels = c("B2","M2", "A2"))
+table(datos$price_categ2)
+
+```
+
+# Train, test y validación
+
+
+```{r, fig.align='center', warning=FALSE}
+
+num_total=nrow(datos)
+set.seed(122556) #reproductividad
+
+# 70% para train
+indices_train = sample(1:num_total, .7*num_total)
+datos_train = datos[indices_train,]
+
+# 15% para test
+indices=seq(1:num_total)
+indices_test=indices[-indices_train]
+indices_test1 = sample(indices_test, .15*num_total)
+datos_test = datos[indices_test1,]
+
+# 15% para validacion
+indices_validacion=indices[c(-indices_train,-indices_test1)]
+datos_validacion=datos[indices_validacion,]
+
+```
+
+
+# Análisis exploratorio de datos (train)
+
+```{r, fig.align='center', warning=FALSE}
+datos_train <- datos_train[,-2]
+
+datos_train$id <- as.factor(datos_train$id)
+
+datos_train$bathrooms_group <- cut(datos_train$bathrooms,breaks = c(-1,0.25,1,2,3,4,5,6,7,8),labels=c(0,1,2,3,4,5,6,7,8))
+datos_train$bathrooms_group <- as.numeric(as.character(datos_train$bathrooms_group))
+
+datos_train$log_sqft_living <- log10(datos_train$sqft_living)
+datos_train$log_lot <- log10(datos_train$sqft_lot)
+datos_train$log_above <- log10(datos_train$sqft_above)
+
+datos_train$sqft_basement_cat <- cut(datos_train$sqft_basement,breaks = c(-1,0,6000),labels=c(0,1))
+
+datos_train$waterfront<-as.factor(datos_train$waterfront)
+
+datos_train$view<-as.factor(datos_train$view)
+
+datos_train$condition<-as.factor(datos_train$condition)
+
+datos_train$grade_categ <- cut(datos_train$grade, breaks = c(0,4,9,13), labels = c(0,1,2))
+
+datos_train$yr_renovated_catg <-cut(datos_train$yr_renovated, breaks=c(-0.5,1933, 2015), labels= c("0","1"))
+
+datos_train$zipcode<-as.factor(datos_train$zipcode)
+
+```
+
+## Eliminación de Outliers
+
+```{r, fig.align='center', warning=FALSE}
+datos_train$posicion<-c(1:nrow(datos_train))
+indices_cero_habitaciones<-datos_train[datos_train$bedrooms==0,]$posicion
+datos_train<-datos_train[-indices_cero_habitaciones,]
+
+datos_train$posicion<-c(1:nrow(datos_train))
+indices_cero_banos<-datos_train$posicion[datos_train$bathrooms_group==0]
+datos_train<-datos_train[-indices_cero_banos,]
+
+datos_train$posicion<-c(1:nrow(datos_train))
+indice_hab33 <- datos_train[datos_train$bedrooms==33,]$posicion
+datos_train[datos_train$posicion == indice_hab33,]$bedrooms = 3
+```
+
+
+```{r}
+datos_train_limpio <- datos_train[c(3,23:27,8:10,28,16:18,29,21,22)]
+datos_train_numeric <- datos_train_limpio %>% select_if(is.numeric)
+```
+
+# Test
+
+```{r, fig.align='center', warning=FALSE}
+
+datos_test <- datos_test[,-2]
+
+datos_test$id <- as.factor(datos_test$id)
+
+datos_test$bathrooms_group <- cut(datos_test$bathrooms,breaks = c(-1,0.25,1,2,3,4,5,6,7,8),labels=c(0,1,2,3,4,5,6,7,8))
+datos_test$bathrooms_group <- as.numeric(as.character(datos_test$bathrooms_group))
+
+datos_test$log_sqft_living <- log10(datos_test$sqft_living)
+datos_test$log_lot <- log10(datos_test$sqft_lot)
+datos_test$log_above <- log10(datos_test$sqft_above)
+
+datos_test$sqft_basement_cat <- cut(datos_test$sqft_basement,breaks = c(-1,0,6000),labels=c(0,1))
+
+datos_test$waterfront<-as.factor(datos_test$waterfront)
+
+datos_test$view<-as.factor(datos_test$view)
+
+datos_test$condition<-as.factor(datos_test$condition)
+
+datos_test$grade_categ <- cut(datos_test$grade, breaks = c(0,4,9,13), labels = c(0,1,2))
+
+datos_test$yr_renovated_catg <-cut(datos_test$yr_renovated, breaks=c(-0.5,1933, 2015), labels= c("0","1"))
+
+datos_test$zipcode<-as.factor(datos_test$zipcode)
+
+datos_test_limpio <- datos_test[c(3,23:27,8:10,28,16:18,29,21,22)]
+```
+
+# Validación
+
+
+```{r, fig.align='center', warning=FALSE}
+
+datos_validacion <- datos_validacion[,-2]
+
+datos_validacion$id <- as.factor(datos_validacion$id)
+
+datos_validacion$bathrooms_group <- cut(datos_validacion$bathrooms,breaks = c(-1,0.25,1,2,3,4,5,6,7,8),labels=c(0,1,2,3,4,5,6,7,8))
+datos_validacion$bathrooms_group <- as.numeric(as.character(datos_validacion$bathrooms_group))
+
+datos_validacion$log_sqft_living <- log10(datos_validacion$sqft_living)
+datos_validacion$log_lot <- log10(datos_validacion$sqft_lot)
+datos_validacion$log_above <- log10(datos_validacion$sqft_above)
+
+datos_validacion$sqft_basement_cat <- cut(datos_validacion$sqft_basement,breaks = c(-1,0,6000),labels=c(0,1))
+
+datos_validacion$waterfront<-as.factor(datos_validacion$waterfront)
+
+datos_validacion$view<-as.factor(datos_validacion$view)
+
+datos_validacion$condition<-as.factor(datos_validacion$condition)
+
+datos_validacion$grade_categ <- cut(datos_validacion$grade, breaks = c(0,4,9,13), labels = c(0,1,2))
+
+datos_validacion$yr_renovated_catg <-cut(datos_validacion$yr_renovated, breaks=c(-0.5,1933, 2015), labels= c("0","1"))
+
+datos_validacion$zipcode<-as.factor(datos_validacion$zipcode)
+
+datos_validacion_limpio <- datos_validacion[c(3,23:27,8:10,28,16:18,29,21,22)]
+```
+
+#Machine Learning
+
+## Métodos de agrupamiento.
+
+### K-Means
+
+#### Train
+
+```{r}
+colores1= c("red","blue")
+colores11 = colores1[datos_train_limpio$price_categ1]
+
+plot(prcomp(datos_train_numeric, scale = T)$x[,1:2], type="n")
+text(prcomp(datos_train_numeric, scale = T)$x[,1:2], as.character(datos_train_limpio$price_categ1), col=colores11)
+
+colores2= c("red","blue","green")
+colores22 = colores2[datos_train_limpio$price_categ2]
+
+plot(prcomp(datos_train_numeric, scale = T)$x[,1:2], type="n")
+text(prcomp(datos_train_numeric, scale = T)$x[,1:2], as.character(datos_train_limpio$price_categ2), col=colores22)
+
+```
+
+A continuación realizamos el clustering:
+
+```{r}
+datos_scale<- as.data.frame(scale(datos_train_numeric))
+modelkm1 <- kmeans(datos_scale, centers=2)
+modelkm2 <- kmeans(datos_scale, centers=3)
+#modelkm
+
+#table(modelkm2$cluster) #asignación de observación a los cluster
+# modelkm1$totss  #Inercia total
+# modelkm1$betweenss  #Inercia inter grupos
+# modelkm1$withinss   #Inercia intra grupos
+# modelkm1$tot.withinss  #inercia total intra grupos
+
+```
+
+```{r}
+colores1= c("red","blue")
+colores11 = colores1[datos_train_limpio$price_categ1]
+
+plot(prcomp(datos_train_numeric, scale = T)$x[,1:2], type="n")
+text(prcomp(datos_train_numeric, scale = T)$x[,1:2], as.character(modelkm1$cluster), col=colores11)
+
+colores2= c("red","blue","green")
+colores22 = colores2[datos_train_limpio$price_categ2]
+
+plot(prcomp(datos_train_numeric, scale = T)$x[,1:2], type="n")
+text(prcomp(datos_train_numeric, scale = T)$x[,1:2], as.character(modelkm2$cluster), col=colores22)
+```
+
+```{r}
+tabla2=table(datos_train_limpio[,15],modelkm1$cluster)
+pred.means2=tabla2[2,2]/(tabla2[2,2]+tabla2[1,2])
+rec.means2=tabla2[2,2]/(tabla2[2,2]+tabla2[2,1])
+F_medida.means2=(5*pred.means2*rec.means2)/(4*pred.means2+rec.means2)
+F_medida.means2
+tabla2
+```
+
+#### Test
+
+#### Validación
+
+### KNN
+
+#### Train
+
+
+
+```{r}
+#k=1
+#train
+constante = 1
+knn.train1=knn.cv(scale(datos_train_numeric[,-c(15,16)]),cl=as.factor(datos_train_limpio[,15]),k=constante)
+tabla.knn.train1=table(knn.train1,datos_train_limpio[,15])
+pred.knn.train1=tabla.knn.train1[2,2]/(tabla.knn.train1[2,2]+tabla.knn.train1[1,2])
+rec.knn.train1=tabla.knn.train1[2,2]/(tabla.knn.train1[2,2]+tabla.knn.train1[2,1])
+F_medida.knn.train1=(5*pred.knn.train1*rec.knn.train1)/(4*pred.knn.train1+rec.knn.train1)
+F_medida.knn.train1
+tabla.knn.train1
+```
+
+```{r}
+#k=2
+#train
+knn.train2=knn.cv(scale(datos_train_numeric[,-c(15,16)]),cl=as.factor(datos_train_limpio[,15]),k=2)
+tabla.knn.train2=table(knn.train2,datos_train_limpio[,15])
+pred.knn.train2=tabla.knn.train2[2,2]/(tabla.knn.train2[2,2]+tabla.knn.train2[1,2])
+rec.knn.train2=tabla.knn.train2[2,2]/(tabla.knn.train2[2,2]+tabla.knn.train2[2,1])
+F_medida.knn.train2=(5*pred.knn.train2*rec.knn.train2)/(4*pred.knn.train2+rec.knn.train2)
+F_medida.knn.train2
+tabla.knn.train2
+```
+
+#### Test
+
+#### Validación
+
+# Ideas
+
+## para estructurarlo
+
+Primero transformaciones de train, test validacion
+Luego cada modelo por separado con su train y test y validacion
