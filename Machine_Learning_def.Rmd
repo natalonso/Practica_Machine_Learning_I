@@ -173,6 +173,7 @@ datos_test$yr_renovated_catg <-cut(datos_test$yr_renovated, breaks=c(-0.5,1933, 
 datos_test$zipcode<-as.factor(datos_test$zipcode)
 
 datos_test_limpio <- datos_test[c(3,23:27,8:10,28,16:18,29,21,22)]
+datos_test_numeric <- datos_test_limpio %>% select_if(is.numeric)
 ```
 
 # Validación
@@ -206,6 +207,9 @@ datos_validacion$yr_renovated_catg <-cut(datos_validacion$yr_renovated, breaks=c
 datos_validacion$zipcode<-as.factor(datos_validacion$zipcode)
 
 datos_validacion_limpio <- datos_validacion[c(3,23:27,8:10,28,16:18,29,21,22)]
+
+datos_validacion_numeric <- datos_validacion_limpio %>% select_if(is.numeric)
+
 ```
 
 #Machine Learning
@@ -229,6 +233,34 @@ leaflet(datos_train_limpio) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
             opacity = 1)
 
 ```
+## Modelo Lineales generalizados.
+
+### Regresión logística
+
+#### Train
+
+```{r}
+
+datos_train_rl=datos_train_limpio[,-16]
+
+model_glm = glm(price_categ1 ~ bedrooms + bathrooms_group + log_sqft_living + log_lot + log_above + lat + long, family = binomial,
+data =datos_train_rl )
+summary(model_glm)
+
+
+```
+
+```{r}
+
+ggplot(subset(datos_train_rl, select = c(bedrooms,bathrooms_group, log_sqft_living, log_lot, log_above, lat, long, price_categ1)), aes(x = bathrooms_group,
+y = price_categ1)) + geom_point() +  # geom_smooth(method = 'glm', method.args = list(family =
+# 'binomial'), se=FALSE) +
+geom_line(data = data.frame(bathrooms_group = data.frame(bathrooms_group = seq(1,8,1)), price_categ1 = predict(model_glm, data.frame(bathrooms_group = seq(1,8,1)), type = "response")), colour = "navy")
+
+
+```
+
+
 
 
 ## Métodos de agrupamiento.
@@ -408,15 +440,25 @@ leaflet(datoskmedoids) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
 
 ### KNN
 
+
+Ver con cuantos vecinos:
+
+```{r}
+
+suppressWarnings(suppressMessages(library(kknn)))
+modelo <- train.kknn(price_categ1 ~ ., data = datos_train_limpio, kmax = 10)
+modelo
+
+```
+
+
 #### Train
-
-
 
 ```{r}
 #k=1
 #train
 constante = 1
-knn.train1=knn.cv(scale(datos_train_numeric[,-c(15,16)]),cl=as.factor(datos_train_limpio[,15]),k=constante)
+knn.train1=knn.cv(scale(datos_train_numeric),cl=as.factor(datos_train_limpio[,15]),k=constante)
 tabla.knn.train1=table(knn.train1,datos_train_limpio[,15])
 pred.knn.train1=tabla.knn.train1[2,2]/(tabla.knn.train1[2,2]+tabla.knn.train1[1,2])
 rec.knn.train1=tabla.knn.train1[2,2]/(tabla.knn.train1[2,2]+tabla.knn.train1[2,1])
@@ -428,7 +470,7 @@ tabla.knn.train1
 ```{r}
 #k=2
 #train
-knn.train2=knn.cv(scale(datos_train_numeric[,-c(15,16)]),cl=as.factor(datos_train_limpio[,15]),k=2)
+knn.train2=knn.cv(scale(datos_train_numeric),cl=as.factor(datos_train_limpio[,15]),k=2)
 tabla.knn.train2=table(knn.train2,datos_train_limpio[,15])
 pred.knn.train2=tabla.knn.train2[2,2]/(tabla.knn.train2[2,2]+tabla.knn.train2[1,2])
 rec.knn.train2=tabla.knn.train2[2,2]/(tabla.knn.train2[2,2]+tabla.knn.train2[2,1])
@@ -460,13 +502,16 @@ leaflet(datos_train_limpio) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
 ```
 
 ```{r}
+
 tabla2=table(datos_train_limpio[,15],knn.train2)
+
 #caras
 pred.means2=tabla2[2,2]/(tabla2[2,2]+tabla2[1,2])
 rec.means2=tabla2[2,2]/(tabla2[2,2]+tabla2[2,1])
 F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
 F_medida.means2
 tabla2
+
 ```
 
 ```{r}
@@ -487,11 +532,67 @@ accuracy
 
 #### Test
 
+```{r}
+
+knn.test2=knn(scale(datos_train_numeric),scale(datos_test_numeric),cl=datos_train_limpio[,15],k=2)
+
+tabla2_test=table(datos_test_limpio[,15],knn.test2)
+#caras
+pred.means2=tabla2_test[2,2]/(tabla2_test[2,2]+tabla2_test[1,2])
+rec.means2=tabla2_test[2,2]/(tabla2_test[2,2]+tabla2_test[2,1])
+F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_medida.means2
+tabla2_test
 
 
+```
+
+```{r}
+#baratas
+pred.means2=tabla2_test[1,1]/(tabla2_test[1,1]+tabla2_test[2,1])
+rec.means2=tabla2_test[1,1]/(tabla2_test[1,1]+tabla2_test[1,2])
+F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_medida.means2
+tabla2_test
+```
+
+```{r}
+accuracy = (tabla2_test[1,1]+tabla2_test[2,2]) / (tabla2_test[1,1]+tabla2_test[1,2]+tabla2_test[2,1]+tabla2_test[2,2])
+accuracy
+```
 
 
 #### Validación
+
+```{r}
+
+knn.val=knn(scale(datos_train_numeric),scale(datos_validacion_numeric),cl=datos_train_limpio[,15],k=2)
+
+tabla2_val=table(datos_validacion_limpio[,15],knn.val)
+#caras
+pred.means2=tabla2_val[2,2]/(tabla2_val[2,2]+tabla2_val[1,2])
+rec.means2=tabla2_val[2,2]/(tabla2_val[2,2]+tabla2_val[2,1])
+F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_medida.means2
+tabla2_val
+```
+
+```{r}
+#baratas
+pred.means2=tabla2_val[1,1]/(tabla2_val[1,1]+tabla2_val[2,1])
+rec.means2=tabla2_val[1,1]/(tabla2_val[1,1]+tabla2_val[1,2])
+F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_medida.means2
+tabla2_val
+```
+
+```{r}
+accuracy = (tabla2_val[1,1]+tabla2_val[2,2]) / (tabla2_val[1,1]+tabla2_val[1,2]+tabla2_val[2,1]+tabla2_val[2,2])
+accuracy
+```
+
+
+
 
 # Ideas
 
