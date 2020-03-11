@@ -2,16 +2,16 @@
 title: "Machine learning i"
 author: "Natalia Alonso, Beatriz Martín y Susana Albarrán"
 date: "7/2/2020"
-
-fig_caption: yes
-
 output:
+  pdf_document:
+    toc: yes
   html_document:
-    toc: true
-    toc_float: true
-    number_sections: true
-    theme: flatly
     code_folding: show
+    number_sections: yes
+    theme: flatly
+    toc: yes
+    toc_float: yes
+fig_caption: yes
 ---
 
 
@@ -50,6 +50,10 @@ library(class)
 
 
 # Categorización del precio
+
+En nuestro estudio inicial, la variable "Precio" es continua, por lo que vamos a categorizarla. Se va a probar lo siguiente:
+
+
 
 ```{r}
 #Categorizamos la variable respuesta price:
@@ -206,6 +210,27 @@ datos_validacion_limpio <- datos_validacion[c(3,23:27,8:10,28,16:18,29,21,22)]
 
 #Machine Learning
 
+```{r, fig.align='center', warning=FALSE}
+
+center_lon = median(datos_train_limpio$long,na.rm = TRUE)
+center_lat = median(datos_train_limpio$lat,na.rm = TRUE)
+
+factpal2 <- colorFactor(c("green","red"), 
+                       datos_train_limpio$price_categ1 )
+
+leaflet(datos_train_limpio) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
+  addCircles(lng = ~long, lat = ~lat,
+             color = ~factpal2(datos_train_limpio$price_categ1))  %>%
+  # controls
+  setView(lng=center_lon, lat=center_lat,zoom = 12) %>%
+
+  addLegend("bottomright", pal = factpal2 , values = ~datos_train_limpio$price_categ1,
+            title = "Precio (en miles de $)",
+            opacity = 1)
+
+```
+
+
 ## Métodos de agrupamiento.
 
 ### K-Means
@@ -258,6 +283,40 @@ text(prcomp(datos_train_numeric, scale = T)$x[,1:2], as.character(modelkm1$clust
 # plot(prcomp(datos_train_numeric, scale = T)$x[,1:2], type="n")
 # text(prcomp(datos_train_numeric, scale = T)$x[,1:2], as.character(modelkm2$cluster), col=colores22)
 ```
+```{r}
+
+clusterkmeans=as.data.frame(modelkm1$cluster)
+
+clusterkmeans$indice= as.integer(rownames(clusterkmeans))
+
+colnames(clusterkmeans)[1]= "categoria_price_km"
+clustering1= clusterkmeans[order(clusterkmeans$indice),]
+```
+
+
+
+
+```{r, fig.align='center', warning=FALSE}
+
+center_lon = median(datos_train_limpio$long,na.rm = TRUE)
+center_lat = median(datos_train_limpio$lat,na.rm = TRUE)
+
+factpal1 <- colorFactor(c("green","red"), 
+                       clustering1$categoria_price_km )
+
+leaflet(datos_train_limpio) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
+  addCircles(lng = ~long, lat = ~lat,
+             color = ~factpal1(clustering1$categoria_price_km))  %>%
+  # controls
+  setView(lng=center_lon, lat=center_lat,zoom = 12) %>%
+
+  addLegend("bottomright", pal = factpal1 , values = ~clustering1$categoria_price_km,
+            title = "Precio (en miles de $)",
+            opacity = 1)
+
+```
+
+
 
 ```{r}
 tabla2=table(datos_train_limpio[,15],modelkm1$cluster)
@@ -286,6 +345,66 @@ accuracy
 #### Test
 
 #### Validación
+
+### K-Medoids
+
+
+
+```{r}
+
+datoskmedoids = datos_train_limpio[,c(-15,-16)]
+
+wbPam = pam(x = datoskmedoids, k = 2, keep.diss = TRUE,
+keep.data = TRUE)
+
+wbPam$medoids
+
+
+plot(wbPam, main = "silhouette plot")
+```
+
+```{r}
+#wbPam$clustering
+#clustering= sort(wbPam$clustering)
+
+clustering=as.data.frame(wbPam$clustering)
+
+clustering$indice= as.integer(rownames(clustering))
+
+colnames(clustering)[1]= "categoria_price"
+clustering2= clustering[order(clustering$indice),]
+
+```
+
+
+```{r, fig.align='center', warning=FALSE}
+
+center_lon = median(datoskmedoids$long,na.rm = TRUE)
+center_lat = median(datoskmedoids$lat,na.rm = TRUE)
+
+factpal2 <- colorFactor(c("green","red"), 
+                       clustering2$categoria_price )
+
+leaflet(datoskmedoids) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
+  addCircles(lng = ~long, lat = ~lat,
+             color = ~factpal2(clustering2$categoria_price))  %>%
+  # controls
+  setView(lng=center_lon, lat=center_lat,zoom = 12) %>%
+
+  addLegend("bottomright", pal = factpal2 , values = ~clustering2$categoria_price,
+            title = "Precio (en miles de $)",
+            opacity = 1)
+
+```
+
+
+
+
+
+```{r}
+
+
+```
 
 ### KNN
 
@@ -319,7 +438,58 @@ tabla.knn.train2
 
 ```
 
+
+```{r, fig.align='center', warning=FALSE}
+
+center_lon = median(datos_train_limpio$long,na.rm = TRUE)
+center_lat = median(datos_train_limpio$lat,na.rm = TRUE)
+
+factpal1 <- colorFactor(c("green","red"), 
+                       knn.train2)
+
+leaflet(datos_train_limpio) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
+  addCircles(lng = ~long, lat = ~lat,
+             color = ~factpal1(knn.train2))  %>%
+  # controls
+  setView(lng=center_lon, lat=center_lat,zoom = 12) %>%
+
+  addLegend("bottomright", pal = factpal1 , values = ~knn.train2,
+            title = "Precio (en miles de $)",
+            opacity = 1)
+
+```
+
+```{r}
+tabla2=table(datos_train_limpio[,15],knn.train2)
+#caras
+pred.means2=tabla2[2,2]/(tabla2[2,2]+tabla2[1,2])
+rec.means2=tabla2[2,2]/(tabla2[2,2]+tabla2[2,1])
+F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_medida.means2
+tabla2
+```
+
+```{r}
+#baratas
+pred.means2=tabla2[1,1]/(tabla2[1,1]+tabla2[2,1])
+rec.means2=tabla2[1,1]/(tabla2[1,1]+tabla2[1,2])
+F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_medida.means2
+tabla2
+```
+
+```{r}
+accuracy = (tabla2[1,1]+tabla2[2,2]) / (tabla2[1,1]+tabla2[1,2]+tabla2[2,1]+tabla2[2,2])
+accuracy
+```
+
+
+
 #### Test
+
+
+
+
 
 #### Validación
 
