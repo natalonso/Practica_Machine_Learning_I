@@ -51,6 +51,7 @@ library(rpart)
 library(rpart.plot)
 library(rattle)
 library(caret)
+library(randomForest)
 
 ```
 
@@ -220,6 +221,8 @@ datos_validacion_numeric <- datos_validacion_limpio %>% select_if(is.numeric)
 
 #Machine Learning
 
+En este mapa se puede visualizar cómo se distribuyen las casas "Caras" y "Baratas" en el mapa. Se observa que las casas que están cercanas al agua y a cerca de Seattle por la parte Norte, son más caras y hacia el sur más baratas.
+
 ```{r, fig.align='center', warning=FALSE}
 
 center_lon = median(datos_train_limpio$long,na.rm = TRUE)
@@ -269,7 +272,7 @@ summary(model_glm)
 
 
 
-## Métodos de agrupamiento.(No supervisado)
+## Métodos de agrupamiento -No supervisado
 
 ### K-Means
 
@@ -605,7 +608,7 @@ accuracy
 #### Train
 
 ```{r}
-datos_train_limpio_dt=datos_train_limpio[,-16]
+datos_train_limpio_dt=datos_train_limpio[,c(-11,-16)]
 
 ```
 
@@ -613,7 +616,7 @@ datos_train_limpio_dt=datos_train_limpio[,-16]
 ```{r}
 decisiontree_model=rpart(price_categ1~., data=datos_train_limpio_dt,parms=list(split="gini") )
 #resumen=summary(decisiontree_model)
-#print(decisiontree_model)
+print(decisiontree_model)
 
 #kk=as.data.frame(summary(decisiontree_model))
 
@@ -630,6 +633,7 @@ tabla.train.arbol1=table(obs = datos_train_limpio_dt$price_categ1, pred = predic
 tabla.train.arbol1
 
 ```
+
 ```{r}
 #caras
 pred.means2=tabla.train.arbol1[2,2]/(tabla.train.arbol1[2,2]+tabla.train.arbol1[1,2])
@@ -686,7 +690,6 @@ accuracy
 ```
 
 
-
 #### Validacion
 
 ```{r}
@@ -719,7 +722,115 @@ accuracy = (tabla.validacion.arbol1[1,1]+tabla.validacion.arbol1[2,2]) / (tabla.
 accuracy
 ```
 
+### Random Forest
 
+#### Train
+
+```{r}
+randomforest_model=randomForest(price_categ1~., data=datos_train_limpio_dt,parms=list(split="gini") )
+#resumen=summary(decisiontree_model)
+print(randomforest_model)
+
+
+#kk=as.data.frame(summary(decisiontree_model))
+
+#fancyRpartPlot(decisiontree_model)
+#rpart.plot(decisiontree_model)
+#prp(decisiontree_model, type = 2, extra = 6, split.font = 3)
+
+```
+
+```{r}
+
+tabla_randomforest=table(obs = datos_train_limpio_dt$price_categ1, pred = predict(randomforest_model, type = "class") )
+
+tabla_randomforest
+
+```
+
+```{r}
+#caras
+pred.means2=tabla_randomforest[2,2]/(tabla_randomforest[2,2]+tabla_randomforest[1,2])
+rec.means2=tabla_randomforest[2,2]/(tabla_randomforest[2,2]+tabla_randomforest[2,1])
+F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_medida.means2
+tabla_randomforest
+```
+
+```{r}
+#baratas
+pred.means2=tabla_randomforest[1,1]/(tabla_randomforest[1,1]+tabla_randomforest[2,1])
+rec.means2=tabla_randomforest[1,1]/(tabla_randomforest[1,1]+tabla_randomforest[1,2])
+F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_medida.means2
+tabla_randomforest
+```
+
+```{r}
+accuracy = (tabla_randomforest[1,1]+tabla_randomforest[2,2]) / (tabla_randomforest[1,1]+tabla_randomforest[1,2]+tabla_randomforest[2,1]+tabla_randomforest[2,2])
+accuracy
+```
+
+```{r}
+
+tabla_randomforest_test=table(obs = datos_test_limpio$price_categ1, pred = predict(randomforest_model,datos_test_limpio[,-16], type ="class"))
+tabla_randomforest_test
+
+#caras
+pred.means2=tabla_randomforest_test[2,2]/(tabla_randomforest_test[2,2]+tabla_randomforest_test[1,2])
+rec.means2=tabla_randomforest_test[2,2]/(tabla_randomforest_test[2,2]+tabla_randomforest_test[2,1])
+F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_medida.means2
+tabla_randomforest_test
+
+
+```
+
+```{r}
+#baratas
+pred.means2=tabla_randomforest_test[1,1]/(tabla_randomforest_test[1,1]+tabla_randomforest_test[2,1])
+rec.means2=tabla_randomforest_test[1,1]/(tabla_randomforest_test[1,1]+tabla_randomforest_test[1,2])
+F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_medida.means2
+tabla_randomforest_test
+```
+
+```{r}
+accuracy = (tabla_randomforest_test[1,1]+tabla_randomforest_test[2,2]) / (tabla_randomforest_test[1,1]+tabla_randomforest_test[1,2]+tabla_randomforest_test[2,1]+tabla_randomforest_test[2,2])
+accuracy
+```
+
+#### Validacion
+
+```{r}
+
+
+tabla_randomforest_val=table(obs = datos_validacion_limpio$price_categ1, pred = predict(randomforest_model,datos_validacion_limpio[,-16], type ="class"))
+
+tabla_randomforest_val
+#caras
+pred.means2=tabla_randomforest_val[2,2]/(tabla_randomforest_val[2,2]+tabla_randomforest_val[1,2])
+rec.means2=tabla_randomforest_val[2,2]/(tabla_randomforest_val[2,2]+tabla_randomforest_val[2,1])
+F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_medida.means2
+tabla_randomforest_val
+
+
+```
+
+```{r}
+#baratas
+pred.means2=tabla_randomforest_val[1,1]/(tabla_randomforest_val[1,1]+tabla_randomforest_val[2,1])
+rec.means2=tabla_randomforest_val[1,1]/(tabla_randomforest_val[1,1]+tabla_randomforest_val[1,2])
+F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_medida.means2
+tabla_randomforest_val
+```
+
+```{r}
+accuracy = (tabla_randomforest_val[1,1]+tabla_randomforest_val[2,2]) / (tabla_randomforest_val[1,1]+tabla_randomforest_val[1,2]+tabla_randomforest_val[2,1]+tabla_randomforest_val[2,2])
+accuracy
+```
 
 
 # Ideas
