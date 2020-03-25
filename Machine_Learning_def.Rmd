@@ -46,6 +46,12 @@ library(useful)
 library(rpart)
 library(rattle)
 library(class)
+library(cluster)
+library(rpart)
+library(rpart.plot)
+library(rattle)
+library(caret)
+
 ```
 
 
@@ -229,7 +235,7 @@ leaflet(datos_train_limpio) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
   setView(lng=center_lon, lat=center_lat,zoom = 12) %>%
 
   addLegend("bottomright", pal = factpal2 , values = ~datos_train_limpio$price_categ1,
-            title = "Precio (en miles de $)",
+            title = "Tipos de Casas",
             opacity = 1)
 
 ```
@@ -252,10 +258,10 @@ summary(model_glm)
 
 ```{r}
 
-ggplot(subset(datos_train_rl, select = c(bedrooms,bathrooms_group, log_sqft_living, log_lot, log_above, lat, long, price_categ1)), aes(x = bathrooms_group,
-y = price_categ1)) + geom_point() +  # geom_smooth(method = 'glm', method.args = list(family =
+#ggplot(subset(datos_train_rl, select = c(bedrooms,bathrooms_group, #log_sqft_living, log_lot, log_above, lat, long, price_categ1)), aes(x = #bathrooms_group,
+#y = price_categ1)) + geom_point() +  # geom_smooth(method = 'glm', method.args = list(family =
 # 'binomial'), se=FALSE) +
-geom_line(data = data.frame(bathrooms_group = data.frame(bathrooms_group = seq(1,8,1)), price_categ1 = predict(model_glm, data.frame(bathrooms_group = seq(1,8,1)), type = "response")), colour = "navy")
+#geom_line(data = data.frame(bathrooms_group = data.frame(bathrooms_group = #seq(1,8,1)), price_categ1 = predict(model_glm, data.frame(bathrooms_group = #seq(1,8,1)), type = "response")), colour = "navy")
 
 
 ```
@@ -263,7 +269,7 @@ geom_line(data = data.frame(bathrooms_group = data.frame(bathrooms_group = seq(1
 
 
 
-## Métodos de agrupamiento.
+## Métodos de agrupamiento.(No supervisado)
 
 ### K-Means
 
@@ -315,6 +321,8 @@ text(prcomp(datos_train_numeric, scale = T)$x[,1:2], as.character(modelkm1$clust
 # plot(prcomp(datos_train_numeric, scale = T)$x[,1:2], type="n")
 # text(prcomp(datos_train_numeric, scale = T)$x[,1:2], as.character(modelkm2$cluster), col=colores22)
 ```
+
+
 ```{r}
 
 clusterkmeans=as.data.frame(modelkm1$cluster)
@@ -343,12 +351,13 @@ leaflet(datos_train_limpio) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
   setView(lng=center_lon, lat=center_lat,zoom = 12) %>%
 
   addLegend("bottomright", pal = factpal1 , values = ~clustering1$categoria_price_km,
-            title = "Precio (en miles de $)",
+            title = "Tipos de casas",
             opacity = 1)
 
 ```
 
 
+#### Evaluación del modelo
 
 ```{r}
 tabla2=table(datos_train_limpio[,15],modelkm1$cluster)
@@ -378,7 +387,7 @@ accuracy
 
 #### Validación
 
-### K-Medoids
+### K-Medoids (No-supervisado)
 
 
 
@@ -424,7 +433,7 @@ leaflet(datoskmedoids) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
   setView(lng=center_lon, lat=center_lat,zoom = 12) %>%
 
   addLegend("bottomright", pal = factpal2 , values = ~clustering2$categoria_price,
-            title = "Precio (en miles de $)",
+            title = "Tipos de casas",
             opacity = 1)
 
 ```
@@ -588,6 +597,125 @@ tabla2_val
 
 ```{r}
 accuracy = (tabla2_val[1,1]+tabla2_val[2,2]) / (tabla2_val[1,1]+tabla2_val[1,2]+tabla2_val[2,1]+tabla2_val[2,2])
+accuracy
+```
+
+### Decision Trees
+
+#### Train
+
+```{r}
+datos_train_limpio_dt=datos_train_limpio[,-16]
+
+```
+
+
+```{r}
+decisiontree_model=rpart(price_categ1~., data=datos_train_limpio_dt,parms=list(split="gini") )
+#resumen=summary(decisiontree_model)
+#print(decisiontree_model)
+
+#kk=as.data.frame(summary(decisiontree_model))
+
+fancyRpartPlot(decisiontree_model)
+#rpart.plot(decisiontree_model)
+#prp(decisiontree_model, type = 2, extra = 6, split.font = 3)
+
+```
+
+```{r}
+
+tabla.train.arbol1=table(obs = datos_train_limpio_dt$price_categ1, pred = predict(decisiontree_model, type = "class") )
+
+tabla.train.arbol1
+
+```
+```{r}
+#caras
+pred.means2=tabla.train.arbol1[2,2]/(tabla.train.arbol1[2,2]+tabla.train.arbol1[1,2])
+rec.means2=tabla.train.arbol1[2,2]/(tabla.train.arbol1[2,2]+tabla.train.arbol1[2,1])
+F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_medida.means2
+tabla.train.arbol1
+```
+
+```{r}
+#baratas
+pred.means2=tabla.train.arbol1[1,1]/(tabla.train.arbol1[1,1]+tabla.train.arbol1[2,1])
+rec.means2=tabla.train.arbol1[1,1]/(tabla.train.arbol1[1,1]+tabla.train.arbol1[1,2])
+F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_medida.means2
+tabla.train.arbol1
+```
+
+```{r}
+accuracy = (tabla.train.arbol1[1,1]+tabla.train.arbol1[2,2]) / (tabla.train.arbol1[1,1]+tabla.train.arbol1[1,2]+tabla.train.arbol1[2,1]+tabla.train.arbol1[2,2])
+accuracy
+```
+
+#### Test
+
+```{r}
+
+
+tabla.test.arbol1=table(obs = datos_test_limpio$price_categ1, pred = predict(decisiontree_model,datos_test_limpio[,-16], type ="class"))
+
+tabla.test.arbol1
+#caras
+pred.means2=tabla.test.arbol1[2,2]/(tabla.test.arbol1[2,2]+tabla.test.arbol1[1,2])
+rec.means2=tabla.test.arbol1[2,2]/(tabla.test.arbol1[2,2]+tabla.test.arbol1[2,1])
+F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_medida.means2
+tabla.test.arbol1
+
+
+```
+
+```{r}
+#baratas
+pred.means2=tabla.test.arbol1[1,1]/(tabla.test.arbol1[1,1]+tabla.test.arbol1[2,1])
+rec.means2=tabla.test.arbol1[1,1]/(tabla.test.arbol1[1,1]+tabla.test.arbol1[1,2])
+F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_medida.means2
+tabla.test.arbol1
+```
+
+```{r}
+accuracy = (tabla.test.arbol1[1,1]+tabla.test.arbol1[2,2]) / (tabla.test.arbol1[1,1]+tabla.test.arbol1[1,2]+tabla.test.arbol1[2,1]+tabla.test.arbol1[2,2])
+accuracy
+```
+
+
+
+#### Validacion
+
+```{r}
+
+
+tabla.validacion.arbol1=table(obs = datos_validacion_limpio$price_categ1, pred = predict(decisiontree_model,datos_validacion_limpio[,-16], type ="class"))
+
+tabla.validacion.arbol1
+#caras
+pred.means2=tabla.validacion.arbol1[2,2]/(tabla.validacion.arbol1[2,2]+tabla.validacion.arbol1[1,2])
+rec.means2=tabla.validacion.arbol1[2,2]/(tabla.validacion.arbol1[2,2]+tabla.validacion.arbol1[2,1])
+F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_medida.means2
+tabla.validacion.arbol1
+
+
+```
+
+```{r}
+#baratas
+pred.means2=tabla.validacion.arbol1[1,1]/(tabla.validacion.arbol1[1,1]+tabla.validacion.arbol1[2,1])
+rec.means2=tabla.validacion.arbol1[1,1]/(tabla.validacion.arbol1[1,1]+tabla.validacion.arbol1[1,2])
+F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_medida.means2
+tabla.validacion.arbol1
+```
+
+```{r}
+accuracy = (tabla.validacion.arbol1[1,1]+tabla.validacion.arbol1[2,2]) / (tabla.validacion.arbol1[1,1]+tabla.validacion.arbol1[1,2]+tabla.validacion.arbol1[2,1]+tabla.validacion.arbol1[2,2])
 accuracy
 ```
 
