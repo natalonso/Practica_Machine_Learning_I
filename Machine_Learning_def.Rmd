@@ -1,16 +1,16 @@
 ---
-title: "Machine learning i"
+title: "Machine learning"
 author: "Natalia Alonso, Beatriz Martín y Susana Albarrán"
 date: "7/2/2020"
 output:
-  pdf_document:
-    toc: yes
   html_document:
     code_folding: show
     number_sections: yes
     theme: flatly
     toc: yes
     toc_float: yes
+  pdf_document:
+    toc: yes
 fig_caption: yes
 ---
 
@@ -56,11 +56,26 @@ library(randomForest)
 ```
 
 
-# Categorización del precio
+# Introducción
 
-En nuestro estudio inicial, la variable "Precio" es continua, por lo que vamos a categorizarla. Se va a probar lo siguiente:
+Los datos que se van a analizar en este proyecto han sido obtenidos desde Kaggle. Contienen precios de casas que fueron vendidas desde mayo de 2014 hasta mayo de 2015 en **King County** que es un condado ubicado en el estado estadounidense de Washington. 
+
+# Objetivo del estudio
+
+Lo que queremos hacer con estos datos es predecir el precio de las casas dependiendo de los datos recogidos.
 
 
+# Datos
+
+
+## Categorización del precio
+
+En nuestro estudio inicial, la variable **"Precio"** es continua, por lo que vamos a categorizarla. Se van a realizar dos tipos de cetegorizaciones:
+
+-  **Categorización_1**: se ha categorizado en dos grupos, **B1**, casas baratas (casas con un precio inferior a 500.000) y casas caras, ***C1** (precio> 500.000)
+- **Categorización2**: se ha categorizado en tres grupos, **B2**, casas baratas (casas con un precio < 330.000), casas precio medio, **M2** (330.000<precio< 650.000) y casas caras, ***C2** (precio> 650.000
+
+Para decidir las categorizaciones se ha optado por los cuantiles.
 
 ```{r}
 #Categorizamos la variable respuesta price:
@@ -73,7 +88,31 @@ table(datos$price_categ2)
 
 ```
 
-# Train, test y validación
+A continuación se muestran cómo están categorizados los datos:
+
+```{r, fig.align='center', warning=FALSE}
+
+#Categorizamos la variable respuesta price: histogramas
+
+tabla_categ1<-table(datos$price_categ1)
+barplot(tabla_categ1, main= "Categorización_1 del precio", xlab="precio_categ1",ylab="Nº de casas", col = c("green", "red"))
+
+
+tabla_categ2<-table(datos$price_categ2)
+barplot(tabla_categ2,main="Categorización_2 del precio", xlab="precio_categ2",ylab="Nº de casas", col = c("green", "red", "purple")) 
+
+
+
+```
+
+
+## Train, test y validación
+
+Se va a separar los datos en los 3 conjuntos de datos fundamentales:  
+
+-  Conjunto de datos de **entrenamiento**: en nuestro estudio **datos_train**, se corresponde con el 70% del total de los datos.
+-  Conjunto de datos de **validación**: en nuestro estudio **datos_validacion**, se corresponde con el 15% del total de los datos.
+-  Conjunto de datos de **test**: en nuestro estudia **datos_test**, se corresponde con el 15% del total de los datos.
 
 
 ```{r, fig.align='center', warning=FALSE}
@@ -98,7 +137,7 @@ datos_validacion=datos[indices_validacion,]
 ```
 
 
-# Análisis exploratorio de datos (train)
+## Análisis exploratorio de datos train
 
 ```{r, fig.align='center', warning=FALSE}
 datos_train <- datos_train[,-2]
@@ -128,7 +167,7 @@ datos_train$zipcode<-as.factor(datos_train$zipcode)
 
 ```
 
-## Eliminación de Outliers
+### Eliminación de Outliers
 
 ```{r, fig.align='center', warning=FALSE}
 datos_train$posicion<-c(1:nrow(datos_train))
@@ -150,7 +189,9 @@ datos_train_limpio <- datos_train[c(3,23:27,8:10,28,16:18,29,21,22)]
 datos_train_numeric <- datos_train_limpio %>% select_if(is.numeric)
 ```
 
-# Test
+## Análisis exploratorio de datos Test
+
+Realizamos todas las transformaciones y categorizaciones para el conjunto de datos de test.
 
 ```{r, fig.align='center', warning=FALSE}
 
@@ -183,8 +224,9 @@ datos_test_limpio <- datos_test[c(3,23:27,8:10,28,16:18,29,21,22)]
 datos_test_numeric <- datos_test_limpio %>% select_if(is.numeric)
 ```
 
-# Validación
+## Análisis exploratorio datos Validación
 
+Realizamos todas las transformaciones y categorizaciones para el conjunto de datos de Validación.
 
 ```{r, fig.align='center', warning=FALSE}
 
@@ -219,9 +261,7 @@ datos_validacion_numeric <- datos_validacion_limpio %>% select_if(is.numeric)
 
 ```
 
-#Machine Learning
-
-En este mapa se puede visualizar cómo se distribuyen las casas "Caras" y "Baratas" en el mapa. Se observa que las casas que están cercanas al agua y a cerca de Seattle por la parte Norte, son más caras y hacia el sur más baratas.
+En este mapa se puede visualizar cómo se distribuyen las casas **"Caras"** y **"Baratas"**. Se observa que las casas que están cercanas al agua y a cerca de Seattle por la parte Norte, son más caras y hacia el sur más baratas.
 
 ```{r, fig.align='center', warning=FALSE}
 
@@ -242,41 +282,13 @@ leaflet(datos_train_limpio) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
             opacity = 1)
 
 ```
-## Modelo Lineales generalizados.
-
-### Regresión logística
-
-#### Train
-
-```{r}
-
-datos_train_rl=datos_train_limpio[,-16]
-
-model_glm = glm(price_categ1 ~ bedrooms + bathrooms_group + log_sqft_living + log_lot + log_above + lat + long, family = binomial,
-data =datos_train_rl )
-summary(model_glm)
 
 
-```
+# Métodos de agrupamiento -No supervisado
 
-```{r}
+## K-Means
 
-#ggplot(subset(datos_train_rl, select = c(bedrooms,bathrooms_group, #log_sqft_living, log_lot, log_above, lat, long, price_categ1)), aes(x = #bathrooms_group,
-#y = price_categ1)) + geom_point() +  # geom_smooth(method = 'glm', method.args = list(family =
-# 'binomial'), se=FALSE) +
-#geom_line(data = data.frame(bathrooms_group = data.frame(bathrooms_group = #seq(1,8,1)), price_categ1 = predict(model_glm, data.frame(bathrooms_group = #seq(1,8,1)), type = "response")), colour = "navy")
-
-
-```
-
-
-
-
-## Métodos de agrupamiento -No supervisado
-
-### K-Means
-
-#### Train
+### Train
 
 ```{r}
 colores1= c("red","blue")
@@ -337,7 +349,7 @@ clustering1= clusterkmeans[order(clusterkmeans$indice),]
 ```
 
 
-
+Se visualiza como se reparten las casas según el agrupamiento que se ha realizado con K-Means:
 
 ```{r, fig.align='center', warning=FALSE}
 
@@ -359,6 +371,7 @@ leaflet(datos_train_limpio) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
 
 ```
 
+Cómo se observa en el mapa, y si lo comparamos con el de los datos iniciales, dista bastante. Por lo que deducimos que la agrupación que está relalizando K-Means no es muy buena.
 
 #### Evaluación del modelo
 
@@ -390,7 +403,7 @@ accuracy
 
 #### Validación
 
-### K-Medoids (No-supervisado)
+## K-Medoids 
 
 
 
@@ -442,15 +455,59 @@ leaflet(datoskmedoids) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
 ```
 
 
+# Técnicas de reducción de la dimensionalidad:
 
+## PCA
 
+Es un método que permite simplificar la complejidad de espacios muestrales con muchas dimensiones a la vez que conserva su información.
 
 ```{r}
+
+pca<-prcomp(datos_train_numeric,scale=T)
+plot(prcomp(datos_train_numeric,scale=T))
+
+#pca$center para saber la media de cada variable
+#pca$scale para saber la desv.típica de cada variable
+
+```
+
+```{r}
+ summary(prcomp(datos_test_numeric, scale=T))
+biplot(x = pca, scale = 0, cex = 0.6, col = c("blue4", "brown3"))
+```
+
+# Aprendizaje supervisado 
+
+## Modelo Lineales generalizados.
+
+### Regresión logística
+
+#### Train
+
+```{r}
+
+datos_train_rl=datos_train_limpio[,-16]
+
+model_glm = glm(price_categ1 ~ bedrooms + bathrooms_group + log_sqft_living + log_lot + log_above + lat + long, family = binomial,
+data =datos_train_rl )
+summary(model_glm)
 
 
 ```
 
-### KNN
+```{r}
+
+#ggplot(subset(datos_train_rl, select = c(bedrooms,bathrooms_group, #log_sqft_living, log_lot, log_above, lat, long, price_categ1)), aes(x = #bathrooms_group,
+#y = price_categ1)) + geom_point() +  # geom_smooth(method = 'glm', method.args = list(family =
+# 'binomial'), se=FALSE) +
+#geom_line(data = data.frame(bathrooms_group = data.frame(bathrooms_group = #seq(1,8,1)), price_categ1 = predict(model_glm, data.frame(bathrooms_group = #seq(1,8,1)), type = "response")), colour = "navy")
+
+
+```
+
+
+
+## KNN
 
 
 Ver con cuantos vecinos:
