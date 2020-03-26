@@ -52,6 +52,7 @@ library(rpart.plot)
 library(rattle)
 library(caret)
 library(randomForest)
+library(e1071)
 
 ```
 
@@ -472,17 +473,16 @@ plot(prcomp(datos_train_numeric,scale=T))
 ```
 
 ```{r}
- summary(prcomp(datos_test_numeric, scale=T))
+summary(prcomp(datos_train_numeric, scale=T))
+
 biplot(x = pca, scale = 0, cex = 0.6, col = c("blue4", "brown3"))
 ```
 
 # Aprendizaje supervisado 
 
-## Modelo Lineales generalizados.
+## GLM-Regresión Logística.
 
-### Regresión logística
-
-#### Train
+### Train
 
 ```{r}
 
@@ -521,7 +521,7 @@ modelo
 ```
 
 
-#### Train
+### Train
 
 ```{r}
 #k=1
@@ -599,7 +599,7 @@ accuracy
 
 
 
-#### Test
+### Test
 
 ```{r}
 
@@ -631,7 +631,7 @@ accuracy
 ```
 
 
-#### Validación
+### Validación
 
 ```{r}
 
@@ -660,9 +660,9 @@ accuracy = (tabla2_val[1,1]+tabla2_val[2,2]) / (tabla2_val[1,1]+tabla2_val[1,2]+
 accuracy
 ```
 
-### Decision Trees
+## Decision Trees
 
-#### Train
+### Train
 
 ```{r}
 datos_train_limpio_dt=datos_train_limpio[,c(-11,-16)]
@@ -714,7 +714,7 @@ accuracy = (tabla.train.arbol1[1,1]+tabla.train.arbol1[2,2]) / (tabla.train.arbo
 accuracy
 ```
 
-#### Test
+### Test
 
 ```{r}
 
@@ -747,7 +747,7 @@ accuracy
 ```
 
 
-#### Validacion
+### Validacion
 
 ```{r}
 
@@ -779,9 +779,9 @@ accuracy = (tabla.validacion.arbol1[1,1]+tabla.validacion.arbol1[2,2]) / (tabla.
 accuracy
 ```
 
-### Random Forest
+## Random Forest
 
-#### Train
+### Train
 
 ```{r}
 randomforest_model=randomForest(price_categ1~., data=datos_train_limpio_dt,parms=list(split="gini") )
@@ -857,7 +857,7 @@ accuracy = (tabla_randomforest_test[1,1]+tabla_randomforest_test[2,2]) / (tabla_
 accuracy
 ```
 
-#### Validacion
+### Validacion
 
 ```{r}
 
@@ -888,6 +888,111 @@ tabla_randomforest_val
 accuracy = (tabla_randomforest_val[1,1]+tabla_randomforest_val[2,2]) / (tabla_randomforest_val[1,1]+tabla_randomforest_val[1,2]+tabla_randomforest_val[2,1]+tabla_randomforest_val[2,2])
 accuracy
 ```
+
+## SVM
+
+```{r}
+modelo_svm <- svm(formula = price_categ1 ~., data = datos_train_limpio_dt, kernel = "polynomial" ,scale = FALSE)
+summary(modelo_svm)
+
+#plot(modelo_svm, datos_train_limpio_dt)
+```
+```{r}
+#set.seed(1)
+#tune.out = tune(svm,price_categ1 ~ ., data = datos_train_limpio_dt, kernel = "linear", ranges = list(cost = c(0.001,
+#0.01, 0.1, 1, 5, 10, 100)))
+
+```
+
+### Train
+```{r}
+
+tabla_svm_train=table(obs = datos_train_limpio_dt$price_categ1, pred = predict(modelo_svm,datos_train_limpio_dt[,-14], type ="class"))
+
+tabla_svm_train
+#caras
+pred.means2=tabla_svm_train[2,2]/(tabla_svm_train[2,2]+tabla_svm_train[1,2])
+rec.means2=tabla_svm_train[2,2]/(tabla_svm_train[2,2]+tabla_svm_train[2,1])
+F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_medida.means2
+tabla_svm_train
+
+
+```
+
+```{r}
+#baratas
+pred.means2=tabla_svm_train[1,1]/(tabla_svm_train[1,1]+tabla_svm_train[2,1])
+rec.means2=tabla_svm_train[1,1]/(tabla_svm_train[1,1]+tabla_svm_train[1,2])
+F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_medida.means2
+tabla_svm_train
+```
+
+```{r}
+accuracy = (tabla_svm_train[1,1]+tabla_svm_train[2,2]) / (tabla_svm_train[1,1]+tabla_svm_train[1,2]+tabla_svm_train[2,1]+tabla_svm_train[2,2])
+accuracy
+```
+## Test
+
+```{r}
+
+tabla_svm_test=table(obs = datos_test_limpio$price_categ1, pred = predict(modelo_svm,datos_test_limpio[,c(-15,-16)], type ="class"))
+tabla_svm_test
+
+#caras
+pred.means2=tabla_svm_test[2,2]/(tabla_svm_test[2,2]+tabla_svm_test[1,2])
+rec.means2=tabla_svm_test[2,2]/(tabla_svm_test[2,2]+tabla_svm_test[2,1])
+F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_medida.means2
+tabla_svm_test
+
+
+```
+
+```{r}
+#baratas
+pred.means2=tabla_svm_test[1,1]/(tabla_svm_test[1,1]+tabla_svm_test[2,1])
+rec.means2=tabla_svm_test[1,1]/(tabla_svm_test[1,1]+tabla_svm_test[1,2])
+F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_medida.means2
+tabla_svm_test
+```
+
+```{r}
+accuracy = (tabla_svm_test[1,1]+tabla_svm_test[2,2]) / (tabla_svm_test[1,1]+tabla_svm_test[1,2]+tabla_svm_test[2,1]+tabla_svm_test[2,2])
+accuracy
+```
+
+### Validacion
+
+```{r}
+
+tabla_svm_val=table(obs = datos_validacion_limpio$price_categ1, pred = predict(modelo_svm,datos_validacion_limpio[,c(-15,-16)], type ="class"))
+
+tabla_svm_val
+#caras
+pred.means2=tabla_svm_val[2,2]/(tabla_svm_val[2,2]+tabla_svm_val[1,2])
+rec.means2=tabla_svm_val[2,2]/(tabla_svm_val[2,2]+tabla_svm_val[2,1])
+F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_medida.means2
+tabla_svm_val
+```
+
+```{r}
+#baratas
+pred.means2=tabla_svm_val[1,1]/(tabla_svm_val[1,1]+tabla_svm_val[2,1])
+rec.means2=tabla_svm_val[1,1]/(tabla_svm_val[1,1]+tabla_svm_val[1,2])
+F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_medida.means2
+tabla_svm_val
+```
+
+```{r}
+accuracy = (tabla_svm_val[1,1]+tabla_svm_val[2,2]) / (tabla_svm_val[1,1]+tabla_svm_val[1,2]+tabla_svm_val[2,1]+tabla_svm_val[2,2])
+accuracy
+```
+
 
 
 # Ideas
