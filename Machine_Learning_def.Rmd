@@ -6,6 +6,8 @@ output:
   html_document:
     code_folding: show
     number_sections: yes
+    fig_height: 10
+    fig_width: 15
     theme: flatly
     toc: yes
     toc_float: yes
@@ -18,6 +20,7 @@ fig_caption: yes
 ```{r, lectura_datos, include=FALSE}
 datos <- read.csv("kc_house_data.csv")
 ```
+
 
 ```{r, setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -68,6 +71,13 @@ Lo que queremos hacer con estos datos es predecir el precio de las casas dependi
 
 # Datos
 
+##  Zipcode
+
+```{r}
+
+
+```
+
 
 ## Categorización del precio
 
@@ -105,7 +115,6 @@ barplot(tabla_categ2,main="Categorización_2 del precio", xlab="precio_categ2",y
 
 
 ```
-
 
 ## Train, test y validación
 
@@ -166,6 +175,15 @@ datos_train$yr_renovated_catg <-cut(datos_train$yr_renovated, breaks=c(-0.5,1933
 
 datos_train$zipcode<-as.factor(datos_train$zipcode)
 
+#codificar la variable Zipcode
+
+datos_train$zona<-recode(datos_train$zipcode, " 98001=1; 98002=1; 98003=1; 98010=1; 98011=1; 98014=1; 98019=1; 98022=1; 98023=1; 98024=1; 98028=1; 98030=1; 98031=1; 98032=1; 98034=1; 98038=1; 98042=1; 98045=1; 98055=1; 98056=1; 98058=1; 98059=1; 98070=1; 98092=1 ;98106=1; 98108=1; 98118=1; 98125=1; 98126=1; 98133=1; 98144=1; 98146=1; 98148=1; 98155=1; 98166=1; 98168=1; 98178=1; 98188=1; 98198=1; 98004=2; 98005=2; 98006=2; 98007=2; 98008=2; 98027=2; 98029=2; 98033=2; 98039=2; 98040=2; 98052=2; 98053=2; 98065=2; 98072=2; 98074=2; 98075=2; 98077=2; 98102=2; 98103=2; 98105=2; 98107=2; 98109=2; 98112=2; 98115=2; 98116=2; 98117=2; 98119=2; 98122=2; 98136=2; 98177=2; 98199=2")
+
+datos_train$zipcode = NULL
+
+
+
+
 ```
 
 ### Eliminación de Outliers
@@ -186,7 +204,8 @@ datos_train[datos_train$posicion == indice_hab33,]$bedrooms = 3
 
 
 ```{r}
-datos_train_limpio <- datos_train[c(3,23:27,8:10,28,16:18,29,21,22)]
+
+datos_train_limpio <- datos_train[c(3,22:26,8:10,27,16,17,29,28,20,21)]
 datos_train_numeric <- datos_train_limpio %>% select_if(is.numeric)
 ```
 
@@ -221,7 +240,13 @@ datos_test$yr_renovated_catg <-cut(datos_test$yr_renovated, breaks=c(-0.5,1933, 
 
 datos_test$zipcode<-as.factor(datos_test$zipcode)
 
-datos_test_limpio <- datos_test[c(3,23:27,8:10,28,16:18,29,21,22)]
+#codificar la variable Zipcode
+
+datos_test$zona<-recode(datos_test$zipcode, " 98001=1; 98002=1; 98003=1; 98010=1; 98011=1; 98014=1; 98019=1; 98022=1; 98023=1; 98024=1; 98028=1; 98030=1; 98031=1; 98032=1; 98034=1; 98038=1; 98042=1; 98045=1; 98055=1; 98056=1; 98058=1; 98059=1; 98070=1; 98092=1 ;98106=1; 98108=1; 98118=1; 98125=1; 98126=1; 98133=1; 98144=1; 98146=1; 98148=1; 98155=1; 98166=1; 98168=1; 98178=1; 98188=1; 98198=1; 98004=2; 98005=2; 98006=2; 98007=2; 98008=2; 98027=2; 98029=2; 98033=2; 98039=2; 98040=2; 98052=2; 98053=2; 98065=2; 98072=2; 98074=2; 98075=2; 98077=2; 98102=2; 98103=2; 98105=2; 98107=2; 98109=2; 98112=2; 98115=2; 98116=2; 98117=2; 98119=2; 98122=2; 98136=2; 98177=2; 98199=2")
+
+datos_test$zipcode = NULL
+
+datos_test_limpio <- datos_test[c(3,22:26,8:10,27,16,17,29,28,20,21)]
 datos_test_numeric <- datos_test_limpio %>% select_if(is.numeric)
 ```
 
@@ -256,7 +281,15 @@ datos_validacion$yr_renovated_catg <-cut(datos_validacion$yr_renovated, breaks=c
 
 datos_validacion$zipcode<-as.factor(datos_validacion$zipcode)
 
-datos_validacion_limpio <- datos_validacion[c(3,23:27,8:10,28,16:18,29,21,22)]
+#codificar la variable Zipcode
+
+datos_validacion$zona<-recode(datos_validacion$zipcode, " 98001=1; 98002=1; 98003=1; 98010=1; 98011=1; 98014=1; 98019=1; 98022=1; 98023=1; 98024=1; 98028=1; 98030=1; 98031=1; 98032=1; 98034=1; 98038=1; 98042=1; 98045=1; 98055=1; 98056=1; 98058=1; 98059=1; 98070=1; 98092=1 ;98106=1; 98108=1; 98118=1; 98125=1; 98126=1; 98133=1; 98144=1; 98146=1; 98148=1; 98155=1; 98166=1; 98168=1; 98178=1; 98188=1; 98198=1; 98004=2; 98005=2; 98006=2; 98007=2; 98008=2; 98027=2; 98029=2; 98033=2; 98039=2; 98040=2; 98052=2; 98053=2; 98065=2; 98072=2; 98074=2; 98075=2; 98077=2; 98102=2; 98103=2; 98105=2; 98107=2; 98109=2; 98112=2; 98115=2; 98116=2; 98117=2; 98119=2; 98122=2; 98136=2; 98177=2; 98199=2")
+
+datos_validacion$zipcode = NULL
+
+
+
+datos_validacion_limpio <- datos_validacion[c(3,22:26,8:10,27,16,17,29,28,20,21)]
 
 datos_validacion_numeric <- datos_validacion_limpio %>% select_if(is.numeric)
 
@@ -284,29 +317,64 @@ leaflet(datos_train_limpio) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
 
 ```
 
+```{r, fig.align='center', warning=FALSE}
 
-# Métodos de agrupamiento -No supervisado
+center_lon = median(datos_train_limpio$long,na.rm = TRUE)
+center_lat = median(datos_train_limpio$lat,na.rm = TRUE)
+
+factpal2 <- colorFactor(c("green","red","yellow"), 
+                       datos_train_limpio$price_categ2 )
+
+leaflet(datos_train_limpio) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
+  addCircles(lng = ~long, lat = ~lat,
+             color = ~factpal2(datos_train_limpio$price_categ2))  %>%
+  # controls
+  setView(lng=center_lon, lat=center_lat,zoom = 12) %>%
+
+  addLegend("bottomright", pal = factpal2 , values = ~datos_train_limpio$price_categ2,
+            title = "Tipos de Casas",
+            opacity = 1)
+
+```
+
+```{r}
+#Aquí nos cargamos ya price_categ2
+
+datos_train_limpio$price_categ2= NULL
+datos_test_limpio$price_categ2= NULL
+datos_validacion_limpio$price_categ2 = NULL
+
+```
+
+
+
+# Métodos de agrupamiento-No supervisado
 
 ## K-Means
 
 ### Train
 
+Primero se van a realizar los gráficos para ver cómo están diferenciadas las casa por precio. Para poder visualizarlo en dos dimensiones se ha usado la función **"prcomp"** (PCA)
+
 ```{r}
 colores1= c("red","blue")
 colores11 = colores1[datos_train_limpio$price_categ1]
 
-plot(prcomp(datos_train_numeric, scale = T)$x[,1:2], type="n")
+plot(prcomp(datos_train_numeric, scale = T)$x[,1:2], type="n",main= "Dos categorías")
 text(prcomp(datos_train_numeric, scale = T)$x[,1:2], as.character(datos_train_limpio$price_categ1), col=colores11)
 
-colores2= c("red","blue","green")
-colores22 = colores2[datos_train_limpio$price_categ2]
+#ELIMINAMOS EL SEGUNDO GRÁFICO PORQUE YA LO HEMOS EXPLICADO CON EL MAPA DE ARRIBA CUANDO PINTAMOS LAS TRES CATEGORÍAS.
 
-plot(prcomp(datos_train_numeric, scale = T)$x[,1:2], type="n")
-text(prcomp(datos_train_numeric, scale = T)$x[,1:2], as.character(datos_train_limpio$price_categ2), col=colores22)
+
+#colores2= c("red","blue","green")
+#colores22 = colores2[datos_train_limpio$price_categ2]
+
+#plot(prcomp(datos_train_numeric, scale = T)$x[,1:2], type="n",main= "Tres categorías" )
+#text(prcomp(datos_train_numeric, scale = T)$x[,1:2], #as.character(datos_train_limpio$price_categ2), col=colores22)
 
 ```
 
-A continuación realizamos el clustering:
+A continuación se va a aplicar el método de agrupamiento de K-means. se van a escalar los datos.
 
 ```{r}
 datos_scale<- as.data.frame(scale(datos_train_numeric))
@@ -323,6 +391,8 @@ modelkm1 <- kmeans(datos_scale, centers=2)
 # modelkm1$tot.withinss  #inercia total intra grupos
 
 ```
+
+
 
 ```{r}
 colores1= c("red","blue")
@@ -377,7 +447,7 @@ Cómo se observa en el mapa, y si lo comparamos con el de los datos iniciales, d
 #### Evaluación del modelo
 
 ```{r}
-tabla2=table(datos_train_limpio[,15],modelkm1$cluster)
+tabla2=table(datos_train_limpio$price_categ1,modelkm1$cluster)
 #caras
 pred.means2=tabla2[2,2]/(tabla2[2,2]+tabla2[1,2])
 rec.means2=tabla2[2,2]/(tabla2[2,2]+tabla2[2,1])
@@ -400,6 +470,7 @@ accuracy = (tabla2[1,1]+tabla2[2,2]) / (tabla2[1,1]+tabla2[1,2]+tabla2[2,1]+tabl
 accuracy
 ```
 
+
 #### Test
 
 #### Validación
@@ -410,7 +481,7 @@ accuracy
 
 ```{r}
 
-datoskmedoids = datos_train_limpio[,c(-15,-16)]
+datoskmedoids = datos_train_limpio[,-15]
 
 wbPam = pam(x = datoskmedoids, k = 2, keep.diss = TRUE,
 keep.data = TRUE)
@@ -486,10 +557,9 @@ biplot(x = pca, scale = 0, cex = 0.6, col = c("blue4", "brown3"))
 
 ```{r}
 
-datos_train_rl=datos_train_limpio[,-16]
 
 model_glm = glm(price_categ1 ~ bedrooms + bathrooms_group + log_sqft_living + log_lot + log_above + lat + long, family = binomial,
-data =datos_train_rl )
+data =datos_train_limpio )
 summary(model_glm)
 
 
@@ -527,8 +597,8 @@ modelo
 #k=1
 #train
 constante = 1
-knn.train1=knn.cv(scale(datos_train_numeric),cl=as.factor(datos_train_limpio[,15]),k=constante)
-tabla.knn.train1=table(knn.train1,datos_train_limpio[,15])
+knn.train1=knn.cv(scale(datos_train_numeric),cl=as.factor(datos_train_limpio$price_categ1),k=constante)
+tabla.knn.train1=table(knn.train1,datos_train_limpio$price_categ1)
 pred.knn.train1=tabla.knn.train1[2,2]/(tabla.knn.train1[2,2]+tabla.knn.train1[1,2])
 rec.knn.train1=tabla.knn.train1[2,2]/(tabla.knn.train1[2,2]+tabla.knn.train1[2,1])
 F_medida.knn.train1=(5*pred.knn.train1*rec.knn.train1)/(4*pred.knn.train1+rec.knn.train1)
@@ -539,8 +609,8 @@ tabla.knn.train1
 ```{r}
 #k=2
 #train
-knn.train2=knn.cv(scale(datos_train_numeric),cl=as.factor(datos_train_limpio[,15]),k=2)
-tabla.knn.train2=table(knn.train2,datos_train_limpio[,15])
+knn.train2=knn.cv(scale(datos_train_numeric),cl=as.factor(datos_train_limpio$price_categ1),k=2)
+tabla.knn.train2=table(knn.train2,datos_train_limpio$price_categ1)
 pred.knn.train2=tabla.knn.train2[2,2]/(tabla.knn.train2[2,2]+tabla.knn.train2[1,2])
 rec.knn.train2=tabla.knn.train2[2,2]/(tabla.knn.train2[2,2]+tabla.knn.train2[2,1])
 F_medida.knn.train2=(5*pred.knn.train2*rec.knn.train2)/(4*pred.knn.train2+rec.knn.train2)
@@ -572,7 +642,7 @@ leaflet(datos_train_limpio) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
 
 ```{r}
 
-tabla2=table(datos_train_limpio[,15],knn.train2)
+tabla2=table(datos_train_limpio$price_categ1,knn.train2)
 
 #caras
 pred.means2=tabla2[2,2]/(tabla2[2,2]+tabla2[1,2])
@@ -603,9 +673,9 @@ accuracy
 
 ```{r}
 
-knn.test2=knn(scale(datos_train_numeric),scale(datos_test_numeric),cl=datos_train_limpio[,15],k=2)
+knn.test2=knn(scale(datos_train_numeric),scale(datos_test_numeric),cl=datos_train_limpio$price_categ1,k=2)
 
-tabla2_test=table(datos_test_limpio[,15],knn.test2)
+tabla2_test=table(datos_test_limpio$price_categ1,knn.test2)
 #caras
 pred.means2=tabla2_test[2,2]/(tabla2_test[2,2]+tabla2_test[1,2])
 rec.means2=tabla2_test[2,2]/(tabla2_test[2,2]+tabla2_test[2,1])
@@ -635,9 +705,9 @@ accuracy
 
 ```{r}
 
-knn.val=knn(scale(datos_train_numeric),scale(datos_validacion_numeric),cl=datos_train_limpio[,15],k=2)
+knn.val=knn(scale(datos_train_numeric),scale(datos_validacion_numeric),cl=datos_train_limpio$price_categ1,k=2)
 
-tabla2_val=table(datos_validacion_limpio[,15],knn.val)
+tabla2_val=table(datos_validacion_limpio$price_categ1,knn.val)
 #caras
 pred.means2=tabla2_val[2,2]/(tabla2_val[2,2]+tabla2_val[1,2])
 rec.means2=tabla2_val[2,2]/(tabla2_val[2,2]+tabla2_val[2,1])
@@ -664,14 +734,9 @@ accuracy
 
 ### Train
 
-```{r}
-datos_train_limpio_dt=datos_train_limpio[,c(-11,-16)]
-
-```
-
 
 ```{r}
-decisiontree_model=rpart(price_categ1~., data=datos_train_limpio_dt,parms=list(split="gini") )
+decisiontree_model=rpart(price_categ1~., data=datos_train_limpio,parms=list(split="gini") )
 #resumen=summary(decisiontree_model)
 print(decisiontree_model)
 
@@ -685,7 +750,7 @@ fancyRpartPlot(decisiontree_model)
 
 ```{r}
 
-tabla.train.arbol1=table(obs = datos_train_limpio_dt$price_categ1, pred = predict(decisiontree_model, type = "class") )
+tabla.train.arbol1=table(obs = datos_train_limpio$price_categ1, pred = predict(decisiontree_model, type = "class") )
 
 tabla.train.arbol1
 
@@ -719,7 +784,7 @@ accuracy
 ```{r}
 
 
-tabla.test.arbol1=table(obs = datos_test_limpio$price_categ1, pred = predict(decisiontree_model,datos_test_limpio[,-16], type ="class"))
+tabla.test.arbol1=table(obs = datos_test_limpio$price_categ1, pred = predict(decisiontree_model,datos_test_limpio[,-15], type ="class"))
 
 tabla.test.arbol1
 #caras
@@ -752,7 +817,7 @@ accuracy
 ```{r}
 
 
-tabla.validacion.arbol1=table(obs = datos_validacion_limpio$price_categ1, pred = predict(decisiontree_model,datos_validacion_limpio[,-16], type ="class"))
+tabla.validacion.arbol1=table(obs = datos_validacion_limpio$price_categ1, pred = predict(decisiontree_model,datos_validacion_limpio[,-15], type ="class"))
 
 tabla.validacion.arbol1
 #caras
@@ -784,9 +849,10 @@ accuracy
 ### Train
 
 ```{r}
-randomforest_model=randomForest(price_categ1~., data=datos_train_limpio_dt,parms=list(split="gini") )
-#resumen=summary(decisiontree_model)
-print(randomforest_model)
+randomforest_model=randomForest(price_categ1~., data=datos_train_limpio,parms=list(split="gini") )
+resumen=summary(decisiontree_model)
+resumen
+#print(randomforest_model)
 
 
 #kk=as.data.frame(summary(decisiontree_model))
@@ -799,7 +865,7 @@ print(randomforest_model)
 
 ```{r}
 
-tabla_randomforest=table(obs = datos_train_limpio_dt$price_categ1, pred = predict(randomforest_model, type = "class") )
+tabla_randomforest=table(obs = datos_train_limpio$price_categ1, pred = predict(randomforest_model, type = "class") )
 
 tabla_randomforest
 
@@ -828,9 +894,11 @@ accuracy = (tabla_randomforest[1,1]+tabla_randomforest[2,2]) / (tabla_randomfore
 accuracy
 ```
 
+### Test
+
 ```{r}
 
-tabla_randomforest_test=table(obs = datos_test_limpio$price_categ1, pred = predict(randomforest_model,datos_test_limpio[,-16], type ="class"))
+tabla_randomforest_test=table(obs = datos_test_limpio$price_categ1, pred = predict(randomforest_model,datos_test_limpio[,-15], type ="class"))
 tabla_randomforest_test
 
 #caras
@@ -862,7 +930,7 @@ accuracy
 ```{r}
 
 
-tabla_randomforest_val=table(obs = datos_validacion_limpio$price_categ1, pred = predict(randomforest_model,datos_validacion_limpio[,-16], type ="class"))
+tabla_randomforest_val=table(obs = datos_validacion_limpio$price_categ1, pred = predict(randomforest_model,datos_validacion_limpio[,-15], type ="class"))
 
 tabla_randomforest_val
 #caras
@@ -892,7 +960,7 @@ accuracy
 ## SVM
 
 ```{r}
-modelo_svm <- svm(formula = price_categ1 ~., data = datos_train_limpio_dt, kernel = "polynomial" ,scale = FALSE)
+modelo_svm <- svm(formula = price_categ1 ~., data = datos_train_limpio, kernel = "linear" ,scale = FALSE)
 summary(modelo_svm)
 
 #plot(modelo_svm, datos_train_limpio_dt)
@@ -905,9 +973,10 @@ summary(modelo_svm)
 ```
 
 ### Train
+
 ```{r}
 
-tabla_svm_train=table(obs = datos_train_limpio_dt$price_categ1, pred = predict(modelo_svm,datos_train_limpio_dt[,-14], type ="class"))
+tabla_svm_train=table(obs = datos_train_limpio$price_categ1, pred = predict(modelo_svm,datos_train_limpio[,-15], type ="class"))
 
 tabla_svm_train
 #caras
@@ -933,11 +1002,12 @@ tabla_svm_train
 accuracy = (tabla_svm_train[1,1]+tabla_svm_train[2,2]) / (tabla_svm_train[1,1]+tabla_svm_train[1,2]+tabla_svm_train[2,1]+tabla_svm_train[2,2])
 accuracy
 ```
-## Test
+
+### Test
 
 ```{r}
 
-tabla_svm_test=table(obs = datos_test_limpio$price_categ1, pred = predict(modelo_svm,datos_test_limpio[,c(-15,-16)], type ="class"))
+tabla_svm_test=table(obs = datos_test_limpio$price_categ1, pred = predict(modelo_svm,datos_test_limpio[,-15], type ="class"))
 tabla_svm_test
 
 #caras
@@ -968,7 +1038,7 @@ accuracy
 
 ```{r}
 
-tabla_svm_val=table(obs = datos_validacion_limpio$price_categ1, pred = predict(modelo_svm,datos_validacion_limpio[,c(-15,-16)], type ="class"))
+tabla_svm_val=table(obs = datos_validacion_limpio$price_categ1, pred = predict(modelo_svm,datos_validacion_limpio[,-15], type ="class"))
 
 tabla_svm_val
 #caras
