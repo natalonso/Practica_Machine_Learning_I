@@ -6,8 +6,8 @@ output:
   html_document:
     code_folding: show
     number_sections: yes
-    fig_height: 10
-    fig_width: 15
+    fig_height: 5
+    fig_width: 8
     theme: flatly
     toc: yes
     toc_float: yes
@@ -70,14 +70,6 @@ Lo que queremos hacer con estos datos es predecir el precio de las casas dependi
 
 
 # Datos
-
-##  Zipcode
-
-```{r}
-
-
-```
-
 
 ## Categorización del precio
 
@@ -147,7 +139,28 @@ datos_validacion=datos[indices_validacion,]
 ```
 
 
-## Análisis exploratorio de datos train
+## Análisis exploratorio
+
+Se van a realizar transformaciones de un conjunto de variables, estas transformaciones se aplicarán a cada conjunto de datos, train, test y validación:
+
+  - Se realiza una transformación logarítmica sobre las variables sqft_living (pies cuadrados de la casa),   sqft_lot (pies cuadrados del jardín) y sqft_above (pies cuadrados poe encima del suelo), hay que aclarar que esta última variable esla diferencia entre sqft_living y sqft_basement por lo que va a estar altamentente correlad con sqft_living.
+
+  - Se categorizan las variables:
+  
+    + Bathroom, esta varible puede tomar valores decimales de 0.25 en 0.25. El número de baños se contabiliza por las piezas y cada baño completo tiene 4 piezas, por lo que con la nueva agrupación toma valores de 1 a 8 baños.
+  
+    + sqft_basement, se categoriza como 0 las casas que no tienen sótano y 1 las casas que sí tienen sótano. 
+  
+    + grade, se va a categorizar del siguiente modo con valor 0=calidad Baja, 1= calidad media y 2= calidad alta.
+
+    + year_renovated,  se categoriza como  0 = no ha tenido renovación y 1 = sí ha tenido renovación.
+ 
+  - Se pasan a factor las variables: waterfront, view, condition, grade_categ y zipcode
+  
+  - Se eliminan Outliers.
+
+
+### Transformaciones datos Train
 
 ```{r, fig.align='center', warning=FALSE}
 datos_train <- datos_train[,-2]
@@ -175,18 +188,9 @@ datos_train$yr_renovated_catg <-cut(datos_train$yr_renovated, breaks=c(-0.5,1933
 
 datos_train$zipcode<-as.factor(datos_train$zipcode)
 
-#codificar la variable Zipcode
-
-datos_train$zona<-recode(datos_train$zipcode, " 98001=1; 98002=1; 98003=1; 98010=1; 98011=1; 98014=1; 98019=1; 98022=1; 98023=1; 98024=1; 98028=1; 98030=1; 98031=1; 98032=1; 98034=1; 98038=1; 98042=1; 98045=1; 98055=1; 98056=1; 98058=1; 98059=1; 98070=1; 98092=1 ;98106=1; 98108=1; 98118=1; 98125=1; 98126=1; 98133=1; 98144=1; 98146=1; 98148=1; 98155=1; 98166=1; 98168=1; 98178=1; 98188=1; 98198=1; 98004=2; 98005=2; 98006=2; 98007=2; 98008=2; 98027=2; 98029=2; 98033=2; 98039=2; 98040=2; 98052=2; 98053=2; 98065=2; 98072=2; 98074=2; 98075=2; 98077=2; 98102=2; 98103=2; 98105=2; 98107=2; 98109=2; 98112=2; 98115=2; 98116=2; 98117=2; 98119=2; 98122=2; 98136=2; 98177=2; 98199=2")
-
-datos_train$zipcode = NULL
-
-
-
-
 ```
 
-### Eliminación de Outliers
+#### Eliminación de Outliers
 
 ```{r, fig.align='center', warning=FALSE}
 datos_train$posicion<-c(1:nrow(datos_train))
@@ -203,13 +207,67 @@ datos_train[datos_train$posicion == indice_hab33,]$bedrooms = 3
 ```
 
 
+### Transformaciones adicionales:
+
+Se han realizado dos categorizaciones adicionales sobre el conjunto de datos. En este caso para ver cómo clasificaban estas variables se ha usado un arbol de decisión, las variables son:  **zipcode** y para **bathrooms_group**
+
+- **Zipcode**, esta variable es de tipo factor y tenía 70 códigos postales, por lo que se ha decidido aplicar un arbol de decisión para ver cómo clasificaba los códigos postales y así volver a categorizarla según el resultado obtenido.
+
 ```{r}
 
-datos_train_limpio <- datos_train[c(3,22:26,8:10,27,16,17,29,28,20,21)]
+model_selec_zipcode<-rpart(price_categ1~zipcode,data=datos_train ,parms=list(split="gini"))
+
+print(model_selec_zipcode)
+```
+
+Se va a categorizar en dos zona1 y Zona2.
+
+```{r}
+
+
+datos_train$zona<-recode(datos_train$zipcode, "98001=1; 98002=1; 98003=1; 98010=1; 98011=1; 98014=1; 98019=1; 98022=1; 98023=1; 98024=1; 98028=1; 98030=1; 98031=1; 98032=1; 98034=1; 98038=1; 98042=1; 98045=1; 98055=1; 98056=1; 98058=1; 98059=1; 98070=1; 98092=1 ;98106=1; 98108=1; 98118=1; 98125=1; 98126=1; 98133=1; 98144=1; 98146=1; 98148=1; 98155=1; 98166=1; 98168=1; 98178=1; 98188=1; 98198=1; 98004=2; 98005=2; 98006=2; 98007=2; 98008=2; 98027=2; 98029=2; 98033=2; 98039=2; 98040=2; 98052=2; 98053=2; 98065=2; 98072=2; 98074=2; 98075=2; 98077=2; 98102=2; 98103=2; 98105=2; 98107=2; 98109=2; 98112=2; 98115=2; 98116=2; 98117=2; 98119=2; 98122=2; 98136=2; 98177=2; 98199=2")
+
+datos_train$zipcode = NULL
+
+```
+
+- **bathrooms_group**, se aplica el mismo método que con zipcode para ver cómo se puede categorizar esta variable. Toma valores de 1 a 8 y queremos reducir el número de níveles.
+
+
+```{r}
+
+
+model_selec_bathrooms<-rpart(price_categ1~bathrooms_group,data=datos_train ,parms=list(split="gini"))
+
+print(model_selec_bathrooms)
+
+```
+
+En el resultado del modelo se ve que corta en el número de baños <2.5, por lo que se va a categorizar como 0 aquellas casas que tengan de 1 a 2 baños y como 1 las casas que tengan más de 2 baños.
+
+```{r}
+
+datos_train$bathrooms_group <- cut(datos_train$bathrooms_group, breaks = c(-1,2.5,8),labels=c(0,1))
+#0 1ó 2 baños, 1 de 3 baños en adelante
+
+```
+
+
+```{r}
+
+datos_train_limpio <- datos_train[c(3,22:26,8:10,27,16,17,30,15,20,21)]
+
+#Eliminamos sqft_above porque es una combinalción lineal de sqft_living, están altamente correladas........
+
+datos_train_limpio$log_above = NULL
+
+
 datos_train_numeric <- datos_train_limpio %>% select_if(is.numeric)
 ```
 
-## Análisis exploratorio de datos Test
+
+
+### Transformaciones datos Test
 
 Realizamos todas las transformaciones y categorizaciones para el conjunto de datos de test.
 
@@ -246,11 +304,20 @@ datos_test$zona<-recode(datos_test$zipcode, " 98001=1; 98002=1; 98003=1; 98010=1
 
 datos_test$zipcode = NULL
 
-datos_test_limpio <- datos_test[c(3,22:26,8:10,27,16,17,29,28,20,21)]
+datos_test$bathrooms_group <- cut(datos_test$bathrooms_group, breaks = c(-1,2.5,8),labels=c(0,1))
+
+#0 1ó 2 baños, 1 de 3 baños en adelante
+```
+
+
+
+```{r}
+datos_test_limpio <- datos_test[c(3,22:26,8:10,27,16,17,29,15,20,21)]
+datos_test_limpio$log_above = NULL
 datos_test_numeric <- datos_test_limpio %>% select_if(is.numeric)
 ```
 
-## Análisis exploratorio datos Validación
+## Transformaciones datos Validación
 
 Realizamos todas las transformaciones y categorizaciones para el conjunto de datos de Validación.
 
@@ -287,13 +354,17 @@ datos_validacion$zona<-recode(datos_validacion$zipcode, " 98001=1; 98002=1; 9800
 
 datos_validacion$zipcode = NULL
 
-
-
-datos_validacion_limpio <- datos_validacion[c(3,22:26,8:10,27,16,17,29,28,20,21)]
-
-datos_validacion_numeric <- datos_validacion_limpio %>% select_if(is.numeric)
+datos_validacion$bathrooms_group <- cut(datos_validacion$bathrooms_group, breaks = c(-1,2.5,8),labels=c(0,1))
 
 ```
+
+```{r}
+datos_validacion_limpio <- datos_validacion[c(3,22:26,8:10,27,16,17,29,15,20,21)]
+datos_validacion_limpio$log_above = NULL
+
+datos_validacion_numeric <- datos_validacion_limpio %>% select_if(is.numeric)
+```
+
 
 En este mapa se puede visualizar cómo se distribuyen las casas **"Caras"** y **"Baratas"**. Se observa que las casas que están cercanas al agua y a cerca de Seattle por la parte Norte, son más caras y hacia el sur más baratas.
 
@@ -316,6 +387,7 @@ leaflet(datos_train_limpio) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
             opacity = 1)
 
 ```
+
 
 ```{r, fig.align='center', warning=FALSE}
 
@@ -363,15 +435,6 @@ colores11 = colores1[datos_train_limpio$price_categ1]
 plot(prcomp(datos_train_numeric, scale = T)$x[,1:2], type="n",main= "Dos categorías")
 text(prcomp(datos_train_numeric, scale = T)$x[,1:2], as.character(datos_train_limpio$price_categ1), col=colores11)
 
-#ELIMINAMOS EL SEGUNDO GRÁFICO PORQUE YA LO HEMOS EXPLICADO CON EL MAPA DE ARRIBA CUANDO PINTAMOS LAS TRES CATEGORÍAS.
-
-
-#colores2= c("red","blue","green")
-#colores22 = colores2[datos_train_limpio$price_categ2]
-
-#plot(prcomp(datos_train_numeric, scale = T)$x[,1:2], type="n",main= "Tres categorías" )
-#text(prcomp(datos_train_numeric, scale = T)$x[,1:2], #as.character(datos_train_limpio$price_categ2), col=colores22)
-
 ```
 
 A continuación se va a aplicar el método de agrupamiento de K-means. se van a escalar los datos.
@@ -380,9 +443,6 @@ A continuación se va a aplicar el método de agrupamiento de K-means. se van a 
 datos_scale<- as.data.frame(scale(datos_train_numeric))
 set.seed(1234)
 modelkm1 <- kmeans(datos_scale, centers=2)
-
-#modelkm2 <- kmeans(datos_scale, centers=3)
-#modelkm
 
 #table(modelkm2$cluster) #asignación de observación a los cluster
 # modelkm1$totss  #Inercia total
@@ -401,11 +461,6 @@ colores11 = colores1[datos_train_limpio$price_categ1]
 plot(prcomp(datos_train_numeric, scale = T)$x[,1:2], type="n")
 text(prcomp(datos_train_numeric, scale = T)$x[,1:2], as.character(modelkm1$cluster), col=colores11)
 
-# colores2= c("red","blue","green")
-# colores22 = colores2[datos_train_limpio$price_categ2]
-# 
-# plot(prcomp(datos_train_numeric, scale = T)$x[,1:2], type="n")
-# text(prcomp(datos_train_numeric, scale = T)$x[,1:2], as.character(modelkm2$cluster), col=colores22)
 ```
 
 
@@ -553,17 +608,60 @@ biplot(x = pca, scale = 0, cex = 0.6, col = c("blue4", "brown3"))
 
 ## GLM-Regresión Logística.
 
+Con este modelo se va a estudiar si existe relación entre el hecho de que una casa sea "cara" ó "barata" dependiendo de las características de las casas.Se va a generar un modelo en el que a apartir de las variables,.....prediga la probabilidad de que una casa sea barata o cara.
+
+
 ### Train
 
 ```{r}
-
-
-model_glm = glm(price_categ1 ~ bedrooms + bathrooms_group + log_sqft_living + log_lot + log_above + lat + long, family = binomial,
-data =datos_train_limpio )
-summary(model_glm)
+datos_train_rl <- datos_train_limpio[,-c(8,9)]
+datos_train_rl$price_categ1<- recode(datos_train_rl$price_categ1, "'B1'=0; 'C1'=1")
 
 
 ```
+
+
+```{r}
+
+model_glm = glm(price_categ1 ~., family = binomial,
+data =datos_train_rl )
+summary(model_glm)
+
+```
+```{r}
+
+predicciones <- ifelse(test = model_glm$fitted.values > 0.5, yes = 1, no = 0)
+tabla2 <- table(model_glm$model$price_categ1, predicciones,
+                          dnn = c("observaciones", "predicciones"))
+tabla2
+
+#caras
+
+pred.means2=tabla2[2,2]/(tabla2[2,2]+tabla2[1,2])
+rec.means2=tabla2[2,2]/(tabla2[2,2]+tabla2[2,1])
+F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_medida.means2
+tabla2
+
+```
+
+```{r}
+#baratas
+pred.means2=tabla2[1,1]/(tabla2[1,1]+tabla2[2,1])
+rec.means2=tabla2[1,1]/(tabla2[1,1]+tabla2[1,2])
+F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_medida.means2
+tabla2
+```
+
+```{r}
+accuracy = (tabla2[1,1]+tabla2[2,2]) / (tabla2[1,1]+tabla2[1,2]+tabla2[2,1]+tabla2[2,2])
+accuracy
+```
+
+
+Explicamos con palabras porqué este modelo no es bueno. En vez de seguir con test y validación se descartan.
+
 
 ```{r}
 
@@ -736,7 +834,11 @@ accuracy
 
 
 ```{r}
-decisiontree_model=rpart(price_categ1~., data=datos_train_limpio,parms=list(split="gini") )
+
+#quitamos lat y long:
+datos_decision_tree<-datos_train_limpio[,-c(11,12)]
+
+decisiontree_model=rpart(price_categ1~bathrooms_group, data=datos_decision_tree,parms=list(split="gini") )
 #resumen=summary(decisiontree_model)
 print(decisiontree_model)
 
@@ -750,9 +852,14 @@ fancyRpartPlot(decisiontree_model)
 
 ```{r}
 
-tabla.train.arbol1=table(obs = datos_train_limpio$price_categ1, pred = predict(decisiontree_model, type = "class") )
+tabla.train.arbol1=table(obs = datos_decision_tree$price_categ1, pred = predict(decisiontree_model, type = "class"))
 
 tabla.train.arbol1
+
+tabla.train.arbol2=table(obs = datos_train_limpio$price_categ1, pred = predict(decisiontree_model, type = "class") )
+
+tabla.train.arbol2
+
 
 ```
 
