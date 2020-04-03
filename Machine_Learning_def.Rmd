@@ -93,20 +93,51 @@ table(datos$price_categ2)
 
 A continuación se muestran cómo están categorizados los datos:
 
+
+En este mapa se puede visualizar cómo se distribuyen las casas **"Caras"** y **"Baratas"**. Se observa que las casas que están cercanas al agua y a cerca de Seattle por la parte Norte, son más caras y hacia el sur más baratas.
+
 ```{r, fig.align='center', warning=FALSE}
 
-#Categorizamos la variable respuesta price: histogramas
+center_lon = median(datos$long,na.rm = TRUE)
+center_lat = median(datos$lat,na.rm = TRUE)
 
-tabla_categ1<-table(datos$price_categ1)
-barplot(tabla_categ1, main= "Categorización_1 del precio", xlab="precio_categ1",ylab="Nº de casas", col = c("green", "red"))
+factpal2 <- colorFactor(c("green","red"), 
+                       datos$price_categ1 )
 
+leaflet(datos) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
+  addCircles(lng = ~long, lat = ~lat,
+             color = ~factpal2(datos$price_categ1))  %>%
+  # controls
+  setView(lng=center_lon, lat=center_lat,zoom = 12) %>%
 
-tabla_categ2<-table(datos$price_categ2)
-barplot(tabla_categ2,main="Categorización_2 del precio", xlab="precio_categ2",ylab="Nº de casas", col = c("green", "red", "purple")) 
-
-
+  addLegend("bottomright", pal = factpal2 , values = ~datos$price_categ1,
+            title = "Tipos de Casas",
+            opacity = 1)
 
 ```
+
+En este otro mapa se puede visualizar cómo se distribuyen las casas según el precio en tres categorías:**"Caras"**, **Medio** y **"Baratas"**. 
+
+```{r, fig.align='center', warning=FALSE}
+
+center_lon = median(datos$long,na.rm = TRUE)
+center_lat = median(datos$lat,na.rm = TRUE)
+
+factpal2 <- colorFactor(c("green","red","yellow"), 
+                       datos$price_categ2 )
+
+leaflet(datos) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
+  addCircles(lng = ~long, lat = ~lat,
+             color = ~factpal2(datos$price_categ2))  %>%
+  # controls
+  setView(lng=center_lon, lat=center_lat,zoom = 12) %>%
+
+  addLegend("bottomright", pal = factpal2 , values = ~datos$price_categ2,
+            title = "Tipos de Casas 3 categorías",
+            opacity = 1)
+
+```
+
 
 ## Train, test y validación
 
@@ -143,19 +174,19 @@ datos_validacion=datos[indices_validacion,]
 
 Se van a realizar transformaciones de un conjunto de variables, estas transformaciones se aplicarán a cada conjunto de datos, train, test y validación:
 
-  - Se realiza una transformación logarítmica sobre las variables sqft_living (pies cuadrados de la casa),   sqft_lot (pies cuadrados del jardín) y sqft_above (pies cuadrados poe encima del suelo), hay que aclarar que esta última variable esla diferencia entre sqft_living y sqft_basement por lo que va a estar altamentente correlad con sqft_living.
+  - Se realiza una transformación logarítmica sobre las variables **sqft_living** (pies cuadrados de la casa), **sqft_lot** (pies cuadrados del jardín) y **sqft_above** (pies cuadrados poe encima del suelo), hay que aclarar que esta última variable esla diferencia entre **sqft_living** y **sqft_basement** por lo que va a estar altamentente correlad con sqft_living.
 
   - Se categorizan las variables:
   
-    + Bathroom, esta varible puede tomar valores decimales de 0.25 en 0.25. El número de baños se contabiliza por las piezas y cada baño completo tiene 4 piezas, por lo que con la nueva agrupación toma valores de 1 a 8 baños.
+    + **Bathroom**, esta varible puede tomar valores decimales de 0.25 en 0.25. El número de baños se contabiliza por las piezas y cada baño completo tiene 4 piezas, por lo que con la nueva agrupación toma valores de 1 a 8 baños.
   
-    + sqft_basement, se categoriza como 0 las casas que no tienen sótano y 1 las casas que sí tienen sótano. 
+    + **Sqft_basement**, se categoriza como 0 las casas que no tienen sótano y 1 las casas que sí tienen sótano. 
   
-    + grade, se va a categorizar del siguiente modo con valor 0=calidad Baja, 1= calidad media y 2= calidad alta.
+    + **Grade**, se va a categorizar del siguiente modo con valor 0=calidad Baja, 1= calidad media y 2= calidad alta.
 
-    + year_renovated,  se categoriza como  0 = no ha tenido renovación y 1 = sí ha tenido renovación.
+    + **Year_renovated**,  se categoriza como  0 = no ha tenido renovación y 1 = sí ha tenido renovación.
  
-  - Se pasan a factor las variables: waterfront, view, condition, grade_categ y zipcode
+  - Se pasan a factor las variables: **waterfront**, **view**, **condition**, **grade_categ** y **zipcode**
   
   - Se eliminan Outliers.
 
@@ -255,7 +286,7 @@ datos_train$bathrooms_group <- cut(datos_train$bathrooms_group, breaks = c(-1,2.
 
 ```{r}
 
-datos_train_limpio <- datos_train[c(3,22:26,8:10,27,16,17,30,15,20,21)]
+datos_train_limpio <- datos_train[c(3,22:26,8:10,27,16,17,30,28,20,21)]
 
 #Eliminamos sqft_above porque es una combinalción lineal de sqft_living, están altamente correladas........
 
@@ -312,7 +343,7 @@ datos_test$bathrooms_group <- cut(datos_test$bathrooms_group, breaks = c(-1,2.5,
 
 
 ```{r}
-datos_test_limpio <- datos_test[c(3,22:26,8:10,27,16,17,29,15,20,21)]
+datos_test_limpio <- datos_test[c(3,22:26,8:10,27,16,17,29,28,20,21)]
 datos_test_limpio$log_above = NULL
 datos_test_numeric <- datos_test_limpio %>% select_if(is.numeric)
 ```
@@ -359,55 +390,13 @@ datos_validacion$bathrooms_group <- cut(datos_validacion$bathrooms_group, breaks
 ```
 
 ```{r}
-datos_validacion_limpio <- datos_validacion[c(3,22:26,8:10,27,16,17,29,15,20,21)]
+datos_validacion_limpio <- datos_validacion[c(3,22:26,8:10,27,16,17,29,28,20,21)]
 datos_validacion_limpio$log_above = NULL
 
 datos_validacion_numeric <- datos_validacion_limpio %>% select_if(is.numeric)
 ```
 
 
-En este mapa se puede visualizar cómo se distribuyen las casas **"Caras"** y **"Baratas"**. Se observa que las casas que están cercanas al agua y a cerca de Seattle por la parte Norte, son más caras y hacia el sur más baratas.
-
-```{r, fig.align='center', warning=FALSE}
-
-center_lon = median(datos_train_limpio$long,na.rm = TRUE)
-center_lat = median(datos_train_limpio$lat,na.rm = TRUE)
-
-factpal2 <- colorFactor(c("green","red"), 
-                       datos_train_limpio$price_categ1 )
-
-leaflet(datos_train_limpio) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
-  addCircles(lng = ~long, lat = ~lat,
-             color = ~factpal2(datos_train_limpio$price_categ1))  %>%
-  # controls
-  setView(lng=center_lon, lat=center_lat,zoom = 12) %>%
-
-  addLegend("bottomright", pal = factpal2 , values = ~datos_train_limpio$price_categ1,
-            title = "Tipos de Casas",
-            opacity = 1)
-
-```
-
-
-```{r, fig.align='center', warning=FALSE}
-
-center_lon = median(datos_train_limpio$long,na.rm = TRUE)
-center_lat = median(datos_train_limpio$lat,na.rm = TRUE)
-
-factpal2 <- colorFactor(c("green","red","yellow"), 
-                       datos_train_limpio$price_categ2 )
-
-leaflet(datos_train_limpio) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
-  addCircles(lng = ~long, lat = ~lat,
-             color = ~factpal2(datos_train_limpio$price_categ2))  %>%
-  # controls
-  setView(lng=center_lon, lat=center_lat,zoom = 12) %>%
-
-  addLegend("bottomright", pal = factpal2 , values = ~datos_train_limpio$price_categ2,
-            title = "Tipos de Casas",
-            opacity = 1)
-
-```
 
 ```{r}
 #Aquí nos cargamos ya price_categ2
@@ -422,9 +411,42 @@ datos_validacion_limpio$price_categ2 = NULL
 
 # Métodos de agrupamiento-No supervisado
 
-## K-Means
+## Cluster Jerárquico
 
 ### Train
+
+```{r}
+datos_scale<- as.data.frame(scale(datos_train_numeric))
+
+#Matriz de distancias
+
+matriz_dist=dist(datos_scale)
+
+```
+
+```{r}
+
+modelo_hc= hclust(matriz_dist, method = "average")
+
+plot(modelo_hc)
+rect.hclust(modelo_hc, k=2,border="red")
+
+```
+
+```{r}
+
+grupos2=cutree(modelo_hc,k=2)
+table(datos_train_limpio$price_categ1, grupos2)
+
+```
+
+
+## K-Means
+
+
+### Train
+
+
 
 Primero se van a realizar los gráficos para ver cómo están diferenciadas las casa por precio. Para poder visualizarlo en dos dimensiones se ha usado la función **"prcomp"** (PCA)
 
@@ -440,9 +462,12 @@ text(prcomp(datos_train_numeric, scale = T)$x[,1:2], as.character(datos_train_li
 A continuación se va a aplicar el método de agrupamiento de K-means. se van a escalar los datos.
 
 ```{r}
-datos_scale<- as.data.frame(scale(datos_train_numeric))
+
 set.seed(1234)
-modelkm1 <- kmeans(datos_scale, centers=2)
+modelkm1 <- kmeans(matriz_dist, centers=2)
+
+
+#modelkm2 <- kmeans(matriz_dist, centers=2)
 
 #table(modelkm2$cluster) #asignación de observación a los cluster
 # modelkm1$totss  #Inercia total
@@ -462,6 +487,30 @@ plot(prcomp(datos_train_numeric, scale = T)$x[,1:2], type="n")
 text(prcomp(datos_train_numeric, scale = T)$x[,1:2], as.character(modelkm1$cluster), col=colores11)
 
 ```
+
+
+#### Cálculo del k-óptimo.
+
+Se va a determinar la cantidad óptima de centroides a utilizar a partir del Método del Codo. Para ello, aplicaremos la función kmeans al conjunto de datos, variando en cada caso el valor de k, y acumulando los valores de WCSS obtenidos:
+
+
+```{r}
+
+set.seed(1234)
+wcss <- vector()
+for(i in 1:20){
+  wcss[i] <- sum(kmeans(datos_scale, i)$withinss)
+}
+
+ggplot() + geom_point(aes(x = 1:20, y = wcss), color = 'blue') + 
+  geom_line(aes(x = 1:20, y = wcss), color = 'blue') + 
+  ggtitle("Método del Codo") + 
+  xlab('Cantidad de Centroides k') + 
+  ylab('WCSS')
+
+
+```
+
 
 
 ```{r}
@@ -1153,7 +1202,6 @@ pred.means2=tabla_svm_val[2,2]/(tabla_svm_val[2,2]+tabla_svm_val[1,2])
 rec.means2=tabla_svm_val[2,2]/(tabla_svm_val[2,2]+tabla_svm_val[2,1])
 F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
 F_medida.means2
-tabla_svm_val
 ```
 
 ```{r}
