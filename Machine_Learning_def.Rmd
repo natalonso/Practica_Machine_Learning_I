@@ -56,6 +56,7 @@ library(rattle)
 library(caret)
 library(randomForest)
 library(e1071)
+library(mgcv)
 
 ```
 
@@ -681,13 +682,13 @@ datos_train_rl <- datos_train_limpio[,-c(8,9)]
 datos_train_rl$price_categ1<- recode(datos_train_rl$price_categ1, "'B1'=0; 'C1'=1")
 
 
+model_glm = glm(price ~., family = binomial, data =datos_train)
 ```
 
 
 ```{r}
 
-model_glm = glm(price_categ1 ~., family = binomial,
-data =datos_train_rl )
+model_glm = glm(price_categ1 ~., family = binomial, data =datos_train_rl )
 summary(model_glm)
 
 ```
@@ -1232,7 +1233,41 @@ accuracy = (tabla_svm_val[1,1]+tabla_svm_val[2,2]) / (tabla_svm_val[1,1]+tabla_s
 accuracy
 ```
 
+# GAM
 
+### Train
+
+```{r}
+datos_train_gam <- datos_train_limpio
+datos_train_gam$price <- datos_train$price
+ 
+model_gam <- gam(price ~ s(bedrooms, bs = "cr") + bathrooms_group + s(log_sqft_living, bs = "cr") + 
+                   s(log_lot, bs = "cr") + sqft_basement_cat + waterfront + view + s(lat, bs = "cr") + 
+                   s(long, bs = "cr") + zona + yr_renovated_catg, data = datos_train_gam)
+
+summary(model_gam)
+plot(model_gam, ylab = "price")
+
+par(mfrow=c(4,4))
+plot(model_gam,all.terms=TRUE,scheme=1)
+
+
+```
+
+### Test
+
+```{r}
+datos_test_limpio$price <- datos_test
+datos_test_limpio$price_predict = predict(model_gam, datos_test_limpio)
+
+```
+
+### Validación
+
+```{r}
+datos_validacion_gam <- datos_validacion_limpio
+datos_validacion_gam$price <- datos_validacion$price
+```
 
 # Ideas
 
