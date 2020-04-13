@@ -408,12 +408,20 @@ datos_validacion_limpio$price_categ2 = NULL
 ```
 
 
-
 # Métodos de agrupamiento-No supervisado
+
+A continuación, se implementan dos métodos de agrupamiento no supervisado. Primero, un método jerárquico para averiguar (si es posible) la cantidad adecuada de clústeres y a continuación K-Means.
 
 ## Cluster Jerárquico
 
+La agrupación es una técnica para agrupar puntos de datos similares en un grupo y separar las diferentes observaciones en diferentes grupos o grupos. En el Clustering Jerárquico los clusters se crean de manera que tengan un orden predeterminado. Existen 
+En nuestro estudio se va a plicar un **método aglomerativo** que consiste en que cada observación se asigna a su propio clúster. Luego, se calcula la similitud (o distancia) entre cada uno de los clusters y los dos clusters más similares se fusionan en uno. Finalmente, los pasos 2 y 3 se repiten hasta que solo quede un grupo.
+
+Aplicando este método a nuestros datos queremos observar si siguen algún patrón para poder agrupar las casas.
+
 ### Train
+
+Escalamos las variables numéricas, es decir cada variable ahora tendrá una media cero y una desviación estándar uno.También se requiere los valores de distancia.La medida predeterminada para la función dist es ‘Euclidiana’.  
 
 ```{r}
 datos_scale<- as.data.frame(scale(datos_train_numeric))
@@ -424,6 +432,8 @@ matriz_dist=dist(datos_scale)
 
 ```
 
+En este caso particular, estimamos dos clústeres:
+
 ```{r}
 
 modelo_hc= hclust(matriz_dist, method = "average")
@@ -433,6 +443,8 @@ rect.hclust(modelo_hc, k=2,border="red")
 
 ```
 
+A continuación vemos como se han agrupado los datos marcando que el número de clústeres sea 2. Prácticamente todas las casas están en el grupo 1.
+
 ```{r}
 
 grupos2=cutree(modelo_hc,k=2)
@@ -441,12 +453,14 @@ table(datos_train_limpio$price_categ1, grupos2)
 ```
 
 
-## K-Means
+## Clúster no Jerárquico- K-Means
+
+
+
+
 
 
 ### Train
-
-
 
 Primero se van a realizar los gráficos para ver cómo están diferenciadas las casa por precio. Para poder visualizarlo en dos dimensiones se ha usado la función **"prcomp"** (PCA)
 
