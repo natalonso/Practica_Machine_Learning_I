@@ -59,6 +59,7 @@ library(e1071)
 library(mgcv)
 library(StatMatch)
 library(visreg)
+library(ROCR)
 
 ```
 
@@ -458,7 +459,7 @@ table(datos_train_limpio$price_categ1, grupos2)
 
 ## Clúster no Jerárquico- K-Means
 
-
+El método de **K-Means** basa su funcionamiento en agrupar los datos de entrada en un total de k conjuntos definidos por un centroide, cuya distancia con los puntos que pertenecen a cada uno de los datos es la menor posible. 
 
 ### Train
 
@@ -473,12 +474,15 @@ text(prcomp(datos_train_numeric, scale = T)$x[,1:2], as.character(datos_train_li
 
 ```
 
-A continuación se va a aplicar el método de agrupamiento de K-means. se van a escalar los datos.
+A continuación se va a aplicar el método de agrupamiento de K-means, al igual que en el método anterior se le pasa la matriz de distacias y se van a agrupar los datos en dos conjuntos:
 
 ```{r}
 
 set.seed(1234)
 modelkm1 <- kmeans(matriz_dist, centers=2)
+#modelkm10 <- kmeans(matriz_dist, centers=10)
+#table(modelkm10$cluster)
+
 
 
 #modelkm2 <- kmeans(matriz_dist, centers=2)
@@ -526,6 +530,10 @@ ggplot() + geom_point(aes(x = 1:20, y = wcss), color = 'blue') +
 ```
 
 
+Como se observa en la gráfica, el K-óptimo que se podría aplicar sería de 10.
+
+A continuación para visualizar si el agrupamiento que se ha llevado a cabo  está relacionado con el precio de las casas(**"Caras"**, **Baratas**), se representa en el mapa que se muestra a continuación.
+
 
 ```{r}
 
@@ -545,7 +553,7 @@ Se visualiza como se reparten las casas según el agrupamiento que se ha realiza
 center_lon = median(datos_train_limpio$long,na.rm = TRUE)
 center_lat = median(datos_train_limpio$lat,na.rm = TRUE)
 
-factpal1 <- colorFactor(c("green","red"), 
+factpal1 <- colorFactor(c("green","red"),
                        clustering1$categoria_price_km )
 
 leaflet(datos_train_limpio) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
@@ -565,6 +573,10 @@ Cómo se observa en el mapa, y si lo comparamos con el de los datos iniciales, d
 
 
 ## K-Medoids
+
+K-medoids es un método de clustering muy similar a K-means en cuanto a que ambos agrupan las observaciones en K clusters, donde K es un valor preestablecido. La diferencia es que, en K-medoids, cada cluster está representado por una observación presente en el cluster (medoid),en nuestro estudio será una observación de una casa,  mientras que en K-means cada cluster está representado por su centroide, que se corresponde con el promedio de todas las observaciones del cluster pero con ninguna en particular.
+
+Este algoritmo es menos sensible al ruido y los valores atípicos, en comparación con k-means, porque usa medoides como centros de clúster en lugar de centroides. (utilizados en k-means).
 
 
 ```{r}
@@ -595,10 +607,10 @@ table(grupos$medoids_model.clustering)
 ```
 
 ```{r}
-#wbPam$clustering
-#clustering= sort(wbPam$clustering)
+#medoids_model$clustering
+clustering= sort(medoids_model$clustering)
 
-clustering=as.data.frame(wbPam$clustering)
+clustering=as.data.frame(medoids_model$clustering)
 
 clustering$indice= as.integer(rownames(clustering))
 
@@ -665,7 +677,7 @@ datos_train_rl <- datos_train_limpio[,-c(8,9)]
 datos_train_rl$price_categ1<- recode(datos_train_rl$price_categ1, "'B1'=0; 'C1'=1")
 
 
-model_glm = glm(price ~., family = binomial, data =datos_train)
+#model_glm = glm(price ~., family = binomial, data =datos_train)
 ```
 
 
@@ -675,35 +687,43 @@ model_glm = glm(price_categ1 ~., family = binomial, data =datos_train_rl )
 summary(model_glm)
 
 ```
+
+
 ```{r}
 
 predicciones <- ifelse(test = model_glm$fitted.values > 0.5, yes = 1, no = 0)
-tabla2 <- table(model_glm$model$price_categ1, predicciones,
+tabla_reglog <- table(model_glm$model$price_categ1, predicciones,
                           dnn = c("observaciones", "predicciones"))
-tabla2
 
 #caras
 
-pred.means2=tabla2[2,2]/(tabla2[2,2]+tabla2[1,2])
-rec.means2=tabla2[2,2]/(tabla2[2,2]+tabla2[2,1])
-F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
-F_medida.means2
-tabla2
+pred.means2=tabla_reglog[2,2]/(tabla_reglog[2,2]+tabla_reglog[1,2])
+rec.means2=tabla_reglog[2,2]/(tabla_reglog[2,2]+tabla_reglog[2,1])
+F_caras_reglog=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_caras_reglog
+tabla_reglog
 
 ```
 
 ```{r}
 #baratas
-pred.means2=tabla2[1,1]/(tabla2[1,1]+tabla2[2,1])
-rec.means2=tabla2[1,1]/(tabla2[1,1]+tabla2[1,2])
-F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
-F_medida.means2
-tabla2
+pred.means2=tabla_reglog[1,1]/(tabla_reglog[1,1]+tabla_reglog[2,1])
+rec.means2=tabla_reglog[1,1]/(tabla_reglog[1,1]+tabla_reglog[1,2])
+F_baratas_reglog=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_baratas_reglog
+tabla_reglog
 ```
 
 ```{r}
-accuracy = (tabla2[1,1]+tabla2[2,2]) / (tabla2[1,1]+tabla2[1,2]+tabla2[2,1]+tabla2[2,2])
-accuracy
+#F-Medida
+
+F_reglog_train= (F_caras_reglog+F_baratas_reglog)/2
+F_reglog_train
+```
+
+```{r}
+accuracy_reglog_train = (tabla_reglog[1,1]+tabla_reglog[2,2]) / (tabla_reglog[1,1]+tabla_reglog[1,2]+tabla_reglog[2,1]+tabla_reglog[2,2])
+accuracy_reglog_train
 ```
 
 
@@ -721,7 +741,6 @@ Explicamos con palabras porqué este modelo no es bueno. En vez de seguir con te
 ```
 
 
-
 ## KNN
 
 
@@ -730,7 +749,7 @@ Ver con cuantos vecinos:
 ```{r}
 
 suppressWarnings(suppressMessages(library(kknn)))
-modelo <- train.kknn(price_categ1 ~ ., data = datos_train_limpio, kmax = 10)
+modelo <- train.kknn(price_categ1 ~ ., data = datos_train_limpio, kmax = 20)
 modelo
 
 ```
@@ -754,16 +773,15 @@ tabla.knn.train1
 ```{r}
 #k=2
 #train
-knn.train2=knn.cv(scale(datos_train_numeric),cl=as.factor(datos_train_limpio$price_categ1),k=2)
-tabla.knn.train2=table(knn.train2,datos_train_limpio$price_categ1)
-pred.knn.train2=tabla.knn.train2[2,2]/(tabla.knn.train2[2,2]+tabla.knn.train2[1,2])
-rec.knn.train2=tabla.knn.train2[2,2]/(tabla.knn.train2[2,2]+tabla.knn.train2[2,1])
-F_medida.knn.train2=(5*pred.knn.train2*rec.knn.train2)/(4*pred.knn.train2+rec.knn.train2)
-F_medida.knn.train2
-tabla.knn.train2
+knn_train2=knn.cv(scale(datos_train_numeric),cl=as.factor(datos_train_limpio$price_categ1),k=2)
+tabla_knn_train2=table(knn_train2,datos_train_limpio$price_categ1)
+pred_knn_train2=tabla_knn_train2[2,2]/(tabla_knn_train2[2,2]+tabla_knn_train2[1,2])
+rec_knn_train2=tabla_knn_train2[2,2]/(tabla_knn_train2[2,2]+tabla_knn_train2[2,1])
+F_medida_knn_train2=(5*pred_knn_train2*rec_knn_train2)/(4*pred_knn_train2+rec_knn_train2)
+F_medida_knn_train2
+tabla_knn_train2
 
 ```
-
 
 ```{r, fig.align='center', warning=FALSE}
 
@@ -771,15 +789,15 @@ center_lon = median(datos_train_limpio$long,na.rm = TRUE)
 center_lat = median(datos_train_limpio$lat,na.rm = TRUE)
 
 factpal1 <- colorFactor(c("green","red"), 
-                       knn.train2)
+                       knn_train2)
 
 leaflet(datos_train_limpio) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
   addCircles(lng = ~long, lat = ~lat,
-             color = ~factpal1(knn.train2))  %>%
+             color = ~factpal1(knn_train2))  %>%
   # controls
   setView(lng=center_lon, lat=center_lat,zoom = 12) %>%
 
-  addLegend("bottomright", pal = factpal1 , values = ~knn.train2,
+  addLegend("bottomright", pal = factpal1 , values = ~knn_train2,
             title = "Precio (en miles de $)",
             opacity = 1)
 
@@ -787,29 +805,39 @@ leaflet(datos_train_limpio) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
 
 ```{r}
 
-tabla2=table(datos_train_limpio$price_categ1,knn.train2)
+tabla_knn=table(datos_train_limpio$price_categ1,knn_train2)
 
 #caras
-pred.means2=tabla2[2,2]/(tabla2[2,2]+tabla2[1,2])
-rec.means2=tabla2[2,2]/(tabla2[2,2]+tabla2[2,1])
-F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
-F_medida.means2
-tabla2
+pred_means_caras_knn=tabla_knn[2,2]/(tabla_knn[2,2]+tabla_knn[1,2])
+rec_means_knn=tabla_knn[2,2]/(tabla_knn[2,2]+tabla_knn[2,1])
+F_caras_knn_train=(2*pred_means_caras_knn*rec_means_knn)/(pred_means_caras_knn+rec_means_knn)
+F_caras_knn_train
+tabla_knn
 
 ```
 
 ```{r}
 #baratas
-pred.means2=tabla2[1,1]/(tabla2[1,1]+tabla2[2,1])
-rec.means2=tabla2[1,1]/(tabla2[1,1]+tabla2[1,2])
-F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
-F_medida.means2
-tabla2
+pred_means_baratas_knn=tabla_knn[1,1]/(tabla_knn[1,1]+tabla_knn[2,1])
+rec_means_baratas_knn=tabla_knn[1,1]/(tabla_knn[1,1]+tabla_knn[1,2])
+F_baratas_knn_train=(2*pred_means_baratas_knn*rec_means_baratas_knn)/(pred_means_baratas_knn+rec_means_baratas_knn)
+F_baratas_knn_train
+tabla_knn
 ```
 
 ```{r}
-accuracy = (tabla2[1,1]+tabla2[2,2]) / (tabla2[1,1]+tabla2[1,2]+tabla2[2,1]+tabla2[2,2])
-accuracy
+#Media de la F-MEDIDA para KNN
+F_knn_train= (F_caras_knn_train+F_baratas_knn_train)/2
+F_knn_train
+
+```
+
+
+
+
+```{r}
+accuracy_knn_train= (tabla_knn[1,1]+tabla_knn[2,2]) / (tabla_knn[1,1]+tabla_knn[1,2]+tabla_knn[2,1]+tabla_knn[2,2])
+accuracy_knn_train
 ```
 
 
@@ -818,9 +846,9 @@ accuracy
 
 ```{r}
 
-knn.test2=knn(scale(datos_train_numeric),scale(datos_test_numeric),cl=datos_train_limpio$price_categ1,k=2)
+knn_test2=knn(scale(datos_train_numeric),scale(datos_test_numeric),cl=datos_train_limpio$price_categ1,k=2)
 
-tabla2_test=table(datos_test_limpio$price_categ1,knn.test2)
+tabla2_test=table(datos_test_limpio$price_categ1,knn_test2)
 #caras
 pred.means2=tabla2_test[2,2]/(tabla2_test[2,2]+tabla2_test[1,2])
 rec.means2=tabla2_test[2,2]/(tabla2_test[2,2]+tabla2_test[2,1])
@@ -885,7 +913,7 @@ accuracy
 #quitamos lat y long:
 datos_decision_tree<-datos_train_limpio[,-c(11,12)]
 
-decisiontree_model=rpart(price_categ1~bathrooms_group, data=datos_decision_tree,parms=list(split="gini") )
+decisiontree_model=rpart(price_categ1~., data=datos_decision_tree,parms=list(split="gini") )
 #resumen=summary(decisiontree_model)
 print(decisiontree_model)
 
@@ -899,38 +927,39 @@ fancyRpartPlot(decisiontree_model)
 
 ```{r}
 
-tabla.train.arbol1=table(obs = datos_decision_tree$price_categ1, pred = predict(decisiontree_model, type = "class"))
+tabla_train_arbol=table(obs = datos_decision_tree$price_categ1, pred = predict(decisiontree_model, type = "class"))
 
-tabla.train.arbol1
-
-tabla.train.arbol2=table(obs = datos_train_limpio$price_categ1, pred = predict(decisiontree_model, type = "class") )
-
-tabla.train.arbol2
-
-
+tabla_train_arbol
 ```
 
 ```{r}
 #caras
-pred.means2=tabla.train.arbol1[2,2]/(tabla.train.arbol1[2,2]+tabla.train.arbol1[1,2])
-rec.means2=tabla.train.arbol1[2,2]/(tabla.train.arbol1[2,2]+tabla.train.arbol1[2,1])
-F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
-F_medida.means2
-tabla.train.arbol1
+pred.means2=tabla_train_arbol[2,2]/(tabla_train_arbol[2,2]+tabla_train_arbol[1,2])
+rec.means2=tabla_train_arbol[2,2]/(tabla_train_arbol[2,2]+tabla_train_arbol[2,1])
+F_caras_dt_train=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_caras_dt_train
+tabla_train_arbol
 ```
 
 ```{r}
 #baratas
-pred.means2=tabla.train.arbol1[1,1]/(tabla.train.arbol1[1,1]+tabla.train.arbol1[2,1])
-rec.means2=tabla.train.arbol1[1,1]/(tabla.train.arbol1[1,1]+tabla.train.arbol1[1,2])
-F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
-F_medida.means2
-tabla.train.arbol1
+pred.means2=tabla_train_arbol[1,1]/(tabla_train_arbol[1,1]+tabla_train_arbol[2,1])
+rec.means2=tabla_train_arbol[1,1]/(tabla_train_arbol[1,1]+tabla_train_arbol[1,2])
+F_baratas_dt_train=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_baratas_dt_train
+tabla_train_arbol
+```
+```{r}
+#Media de la F-MEDIDA para Decision Tree
+F_dt_train= (F_caras_dt_train+F_baratas_dt_train)/2
+F_dt_train
+
 ```
 
+
 ```{r}
-accuracy = (tabla.train.arbol1[1,1]+tabla.train.arbol1[2,2]) / (tabla.train.arbol1[1,1]+tabla.train.arbol1[1,2]+tabla.train.arbol1[2,1]+tabla.train.arbol1[2,2])
-accuracy
+accuracy_dt_train = (tabla_train_arbol[1,1]+tabla_train_arbol[2,2]) / (tabla_train_arbol[1,1]+tabla_train_arbol[1,2]+tabla_train_arbol[2,1]+tabla_train_arbol[2,2])
+accuracy_dt_train
 ```
 
 ### Test
@@ -1004,16 +1033,7 @@ accuracy
 
 ```{r}
 randomforest_model=randomForest(price_categ1~., data=datos_train_limpio,parms=list(split="gini") )
-resumen=summary(decisiontree_model)
-resumen
 #print(randomforest_model)
-
-
-#kk=as.data.frame(summary(decisiontree_model))
-
-#fancyRpartPlot(decisiontree_model)
-#rpart.plot(decisiontree_model)
-#prp(decisiontree_model, type = 2, extra = 6, split.font = 3)
 
 ```
 
@@ -1029,8 +1049,8 @@ tabla_randomforest
 #caras
 pred.means2=tabla_randomforest[2,2]/(tabla_randomforest[2,2]+tabla_randomforest[1,2])
 rec.means2=tabla_randomforest[2,2]/(tabla_randomforest[2,2]+tabla_randomforest[2,1])
-F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
-F_medida.means2
+F_caras_rf_train=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_caras_rf_train
 tabla_randomforest
 ```
 
@@ -1038,15 +1058,23 @@ tabla_randomforest
 #baratas
 pred.means2=tabla_randomforest[1,1]/(tabla_randomforest[1,1]+tabla_randomforest[2,1])
 rec.means2=tabla_randomforest[1,1]/(tabla_randomforest[1,1]+tabla_randomforest[1,2])
-F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
-F_medida.means2
+F_baratas_rf_train=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_baratas_rf_train
 tabla_randomforest
 ```
+```{r}
+#Media de la F-MEDIDA para Random Forest
+F_rf_train= (F_caras_rf_train+F_baratas_rf_train)/2
+F_rf_train
+
+```
+
 
 ```{r}
-accuracy = (tabla_randomforest[1,1]+tabla_randomforest[2,2]) / (tabla_randomforest[1,1]+tabla_randomforest[1,2]+tabla_randomforest[2,1]+tabla_randomforest[2,2])
-accuracy
+accuracy_rf_train = (tabla_randomforest[1,1]+tabla_randomforest[2,2]) / (tabla_randomforest[1,1]+tabla_randomforest[1,2]+tabla_randomforest[2,1]+tabla_randomforest[2,2])
+accuracy_rf_train
 ```
+
 
 ### Test
 
@@ -1111,10 +1139,11 @@ accuracy = (tabla_randomforest_val[1,1]+tabla_randomforest_val[2,2]) / (tabla_ra
 accuracy
 ```
 
+
 ## SVM
 
 ```{r}
-modelo_svm <- svm(formula = price_categ1 ~., data = datos_train_limpio, kernel = "linear" ,scale = FALSE)
+modelo_svm <- e1071::svm(formula = price_categ1 ~., data = datos_train_limpio, kernel = "linear" , probability =TRUE)
 summary(modelo_svm)
 
 #plot(modelo_svm, datos_train_limpio_dt)
@@ -1136,8 +1165,8 @@ tabla_svm_train
 #caras
 pred.means2=tabla_svm_train[2,2]/(tabla_svm_train[2,2]+tabla_svm_train[1,2])
 rec.means2=tabla_svm_train[2,2]/(tabla_svm_train[2,2]+tabla_svm_train[2,1])
-F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
-F_medida.means2
+F_caras_svm_train=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_caras_svm_train
 tabla_svm_train
 
 
@@ -1145,16 +1174,24 @@ tabla_svm_train
 
 ```{r}
 #baratas
-pred.means2=tabla_svm_train[1,1]/(tabla_svm_train[1,1]+tabla_svm_train[2,1])
-rec.means2=tabla_svm_train[1,1]/(tabla_svm_train[1,1]+tabla_svm_train[1,2])
-F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
-F_medida.means2
+pred_means2=tabla_svm_train[1,1]/(tabla_svm_train[1,1]+tabla_svm_train[2,1])
+rec_means2=tabla_svm_train[1,1]/(tabla_svm_train[1,1]+tabla_svm_train[1,2])
+F_baratas_svm_train=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+F_baratas_svm_train
 tabla_svm_train
 ```
+```{r}
+#F-Medida para SVM
+
+F_svm_train= (F_caras_svm_train+F_baratas_svm_train)/2
+F_svm_train
+
+```
+
 
 ```{r}
-accuracy = (tabla_svm_train[1,1]+tabla_svm_train[2,2]) / (tabla_svm_train[1,1]+tabla_svm_train[1,2]+tabla_svm_train[2,1]+tabla_svm_train[2,2])
-accuracy
+accuracy_svm_train = (tabla_svm_train[1,1]+tabla_svm_train[2,2]) / (tabla_svm_train[1,1]+tabla_svm_train[1,2]+tabla_svm_train[2,1]+tabla_svm_train[2,2])
+accuracy_svm_train
 ```
 
 ### Test
@@ -1268,25 +1305,119 @@ dif_media_test <- mean(datos_validacion_limpio$precio_diff)
 dif_media_test
 ```
 
-
-# CURVA ROC
+# Ajuste de Hiperparámetros.
 
 ```{r}
+#knn.train2=knn.cv(scale(datos_train_numeric),cl=as.factor(datos_train_limpio$pri#ce_categ1),k=2)
 
-roc_gam <- roc(datos_test_limpio$price_categ1, datos_test_limpio$price_predict)
-
-
-datos_svm <- datos_train_limpio
-datos_svm$price_predict = predict(modelo_svm, datos_svm)
-roc_svm <- roc(datos_svm$price_categ1, datos_svm$price_predict)
-
-
-plot.roc(roc_svm, legacy.axes = TRUE, print.thres = "best", print.auc = TRUE,
-          auc.polygon = FALSE, max.auc.polygon = FALSE, auc.polygon.col = "gainsboro",
-          col = 2, grid = TRUE )
+ # x <- iris[,-5]
+  #y <- iris[,5]
+  
+obj2 <- tune.knn(x=scale(datos_train_numeric),
+                   y=as.factor(datos_train_limpio$price_categ1), k = 1:10,
+                   tunecontrol = tune.control(sampling = "boot"))
+ #summary(obj2)
+  plot(obj2)
 
 ```
 
+## Ajuste KNN
+
+```{r}
+#n^(4/(d+4))
+#n es el número de datos de entrenamiento
+#d es la dimensión de los datos
+n=dim(datos_train_numeric)[1]
+d=ncol(datos_train_numeric)
+k_optimo = as.integer(n^(4/(d+4)))
+
+k_optimo
+
+rango=1:(k_optimo+10)
+modelos=c()
+f1_modelos=c()
+for (i in rango){
+  model_knn=knn.cv(scale(datos_train_numeric),cl=as.factor(datos_train_limpio$price_categ1),k=i)
+  tabla=table(datos_train_limpio$price_categ1,model_knn)
+  # f1 casas caras
+  pred_means_caras=tabla[2,2]/(tabla[2,2]+tabla[1,2])
+  rec_means_caras=tabla[2,2]/(tabla[2,2]+tabla[2,1])
+  f1_caras=(2*pred_means_caras*rec_means_caras)/(pred_means_caras+rec_means_caras)
+  # f1 casas baratas
+  pred_means_baratas=tabla[1,1]/(tabla[1,1]+tabla[2,1])
+  rec_means_baratas=tabla[1,1]/(tabla[1,1]+tabla[1,2])
+  f1_baratas=(2*pred_means_baratas*rec_means_baratas)/(pred_means_baratas+rec_means_baratas)
+  f1_total = (f1_baratas + f1_caras)/2
+  f1_modelos=c(f1_modelos,f1_total)
+}
+
+
+f1_modelos
+rango
+pos_max <- which.max(f1_modelos)
+rango[pos_max]
+
+
+```
+
+
+# Evaluación y comparación de modelos. 
+
+Una vez que se han entrenado y optimizado distintos modelos, se tiene que identificar cuál de ellos consigue mejores resultados para el problema en cuestión, en este caso, predecir si una casa es barata o cara. Con los datos disponibles, existen dos formas de comparar los modelos. Si bien las dos no tienen por qué dar los mismos resultados, son complementarias a la hora de tomar una decisión final.
+
+```{r}
+models_cross = data.frame(
+"modelo"= c('GLM','knn','Decision_Tree','Random_Forest','SVM'),
+ "F_Medida_train" = c(F_reglog_train,F_knn_train,F_dt_train,F_rf_train,F_svm_train))
+plot(x = models_cross$modelo, y= models_cross$F_Medida_train,fill=models_cross$modelo)
+
+
+ggplot(data=models_cross, aes(x=modelo, y=F_Medida_train, fill=modelo)) + 
+    geom_bar(stat="identity", position="dodge")
+
+```
+
+
+# CURVA ROC.
+
+```{r}
+
+# REGRESIÓN LOGÍSTICA
+predictions_glm <- predict(model_glm, newdata = datos_train_rl, type = "response")
+pred_glm <- prediction(predictions_glm, datos_train_rl$price_categ1)
+perf_glm <- performance(pred_glm,"tpr","fpr")
+
+# ARBOL DE DECISION
+predictions_tree <- predict(decisiontree_model, newdata = datos_decision_tree, type = "prob")
+pred_tree = prediction(predictions_tree[,2], datos_decision_tree$price_categ1)
+pref_tree = performance(pred_tree, "tpr", "fpr")
+
+# RANDOM FOREST
+predictions_rf <- predict(randomforest_model, new_data=datos_train_limpio, type = "prob")
+pred_rf <- prediction(predictions_rf[,2],datos_train_limpio$price_categ1)
+perf_rf <- performance(pred_rf,"tpr","fpr")
+
+# SVM
+predictions_svm <- predict(modelo_svm, newdata=datos_train_limpio, probability = TRUE)
+prob_svm<-attr(predictions_svm,"probabilities")
+pred_svm <- prediction(prob_svm[,2], datos_train_limpio$price_categ)
+perf_svm <- performance(pred_svm,"tpr","fpr")
+
+
+plot(perf_glm,col="blue")
+plot(pref_tree, col="red",add = TRUE)
+plot(perf_rf,col="green", add = TRUE)
+plot(perf_svm, col="yellow",add = TRUE)
+legend(x="right" ,legend=c("GLM","DT","RF","SVM"),
+fill=c("blue","red","green","yellow"),cex=0.8)
+
+
+
+```
+
+```{r}
+
+```
 
 # Ideas
 
