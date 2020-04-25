@@ -1,0 +1,47 @@
+
+PENDIENTE MACHINE LEARNING I
+
+-Pregutar a victor:
+-Revisar la interpretación del PCA (gráfica biplot).
+-Ver si hacemos tune para dt tune.rpart.
+-Ver si podemos añadir el knn a la curva ROC.
+-Revisar curva roc para ver si dejar tpr/fpr u otras métricas.
+
+-Pendiente nosotras:
+-NATALIA: revisar gráfica glm apuntes del profe.
+-Ver si añadimos una gráfica para knn con fórmula para comparar con el tune.
+-Mejorar la gráfica de los valores de k.
+
+
+#############################
+KNN 
+#############################
+
+-EL KNN NO TIENE PREDICT Y PARA LAS TABLAS HAY QUE HACER EL KNN()
+
+#############################
+ÁRBOL DE DECISIÓN
+#############################
+
+# cuanto más grande cp (cp=0.1) más penalizas una nueva rama, y por tanto es más pequeño
+# cuanto más pequeño cp (cp=0.01) menos penalizas una nueva rama, y por tanto el arbol es más grande
+# minbucket para indicar el número de casas que tienen que quedar como mínimo en la última partición
+# minbucket = 500: árbol más pequeño
+# minbucket = 50: árbol más grande
+# maxdeph: máximo número de capas
+
+#############################
+RANDOM FOREST
+#############################
+
+ntree: Number of trees to grow. 
+importance: Should importance of predictors be assessed?
+proximity: Should proximity measure among the rows be calculated?
+mtry: Number of variables randomly sampled as candidates at each split.
+replace: Should sampling of cases be done with or without replacement?
+
+#############################
+TUNE SVM
+#############################
+
+# cost: determina la penalización que ponemos a los errores de clasificación
