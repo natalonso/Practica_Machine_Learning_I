@@ -223,7 +223,7 @@ datos_train$zipcode<-as.factor(datos_train$zipcode)
 
 ```
 
-#### Eliminación de Outliers
+### Eliminación de Outliers
 
 ```{r, fig.align='center', warning=FALSE}
 datos_train$posicion<-c(1:nrow(datos_train))
@@ -346,7 +346,7 @@ datos_test_limpio$log_above = NULL
 datos_test_numeric <- datos_test_limpio %>% select_if(is.numeric)
 ```
 
-## Transformaciones datos Validación
+### Transformaciones datos Validación
 
 Realizamos todas las transformaciones y categorizaciones para el conjunto de datos de Validación.
 
@@ -396,7 +396,7 @@ datos_validacion_numeric <- datos_validacion_limpio %>% select_if(is.numeric)
 
 
 ```{r}
-#Aquí nos cargamos ya price_categ2
+# Eliminamos price_categ2
 
 datos_train_limpio$price_categ2= NULL
 datos_test_limpio$price_categ2= NULL
@@ -404,6 +404,51 @@ datos_validacion_limpio$price_categ2 = NULL
 
 ```
 
+### Resumen EDA
+
+La distribución de las casas según la nueva categorización daría como resultado un 57,8% de casas baratas (B1) y un 42,23% de casas caras (C1):
+
+
+```{r}
+
+datos_train_limpio %>% 
+  group_by(price_categ1) %>% 
+  summarise(Count = n())%>% 
+  mutate(percent = prop.table(Count)*100)%>%
+  ggplot(aes(reorder(price_categ1, - percent), percent), fill = price_categ1)+
+  geom_col(fill = c("red", "blue"))+
+  xlab("Precio de las casas") + 
+  ylab("Percent")+
+  ggtitle("% de las casas por precio")
+
+```
+
+En cuanto a la relación de las variables que hacen referencia a las características de las casas con la variable respuesta categorizada, se observa lo siguiente:
+
+```{r, fig.align='center', warning=FALSE}
+
+p1<-ggplot(data = datos_train_limpio) + geom_bar(aes(x=bedrooms,fill=price_categ1,bins=30, position = "identity"))
+p2<-ggplot(data=datos_train_limpio)+geom_bar(aes(x=bathrooms_group,fill = price_categ1))
+p3<-ggplot(data=datos_train_limpio)+geom_density(aes(x=log_sqft_living, fill=price_categ1))
+p4<-ggplot(data=datos_train_limpio)+geom_density(aes(x=log_lot, fill=price_categ1))
+grid.arrange(p1, p2, p3, p4, nrow = 2)
+
+```
+
+Por último, para la relación entre las variables que expresan la calidad de las casas, y el precio, se obtienen estos resultados:
+
+```{r, fig.align='center', warning=FALSE}
+
+p5<-ggplot(data = datos_train_limpio) + geom_bar(aes(x=waterfront,fill=price_categ1, stat="count"))
+p6<-ggplot(data = datos_train_limpio) + geom_bar(aes(x=view,fill=price_categ1, stat="count"))
+p7<-ggplot(data = datos_train_limpio) + geom_bar(aes(x=condition,fill=price_categ1, stat="count"))
+p8<-ggplot(data = datos_train_limpio) + geom_bar(aes(x=grade_categ,fill=price_categ1, stat="count"))
+p9<-ggplot(data = datos_train_limpio) + geom_bar(aes(x=yr_renovated_catg,fill=price_categ1, stat="count"))
+p10<-ggplot(data = datos_train_limpio) + geom_bar(aes(x=zona,fill=price_categ1,bins=30, position = "identity"))
+
+grid.arrange(p5,p6,p7,p8,p9,p10, nrow = 4)
+
+```
 
 # Métodos de agrupamiento-No supervisado
 
@@ -639,30 +684,31 @@ summary(model_glm)
 
 
 ```{r}
+
 # EVALUACION
 
 predicciones <- ifelse(test = model_glm$fitted.values > 0.5, yes = 1, no = 0)
-tabla_reglog <- table(model_glm$model$price_categ1, predicciones,
-                          dnn = c("observaciones", "predicciones"))
-tabla_reglog
+tabla_glm_train <- table(model_glm$model$price_categ1, predicciones,
+                      dnn = c("observaciones", "predicciones"))
+tabla_glm_train
 
 #caras
-pred.means2=tabla_reglog[2,2]/(tabla_reglog[2,2]+tabla_reglog[1,2])
-rec.means2=tabla_reglog[2,2]/(tabla_reglog[2,2]+tabla_reglog[2,1])
-F_caras_reglog=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+pred_caras_glm_train=tabla_glm_train[2,2]/(tabla_glm_train[2,2]+tabla_glm_train[1,2])
+rec_caras_glm_train=tabla_glm_train[2,2]/(tabla_glm_train[2,2]+tabla_glm_train[2,1])
+F_caras_reglog=(2*pred_caras_glm_train*rec_caras_glm_train)/(pred_caras_glm_train+rec_caras_glm_train)
 cat(c('F1 casas caras: ', F_caras_reglog), '\n')
 
 #baratas
-pred.means2=tabla_reglog[1,1]/(tabla_reglog[1,1]+tabla_reglog[2,1])
-rec.means2=tabla_reglog[1,1]/(tabla_reglog[1,1]+tabla_reglog[1,2])
-F_baratas_reglog=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
+pred_baratas_glm_train=tabla_glm_train[1,1]/(tabla_glm_train[1,1]+tabla_glm_train[2,1])
+rec_baratas_glm_train=tabla_glm_train[1,1]/(tabla_glm_train[1,1]+tabla_glm_train[1,2])
+F_baratas_reglog=(2*pred_baratas_glm_train*rec_baratas_glm_train)/(pred_baratas_glm_train+rec_baratas_glm_train)
 cat(c('F1 casas baratas: ', F_baratas_reglog), '\n')
 
 #F-Medida
 F_reglog_train= (F_caras_reglog+F_baratas_reglog)/2
 cat(c('F1 global: ', F_reglog_train), '\n')
 
-accuracy_reglog_train = (tabla_reglog[1,1]+tabla_reglog[2,2]) / (tabla_reglog[1,1]+tabla_reglog[1,2]+tabla_reglog[2,1]+tabla_reglog[2,2])
+accuracy_reglog_train = (tabla_glm_train[1,1]+tabla_glm_train[2,2]) / (tabla_glm_train[1,1]+tabla_glm_train[1,2]+tabla_glm_train[2,1]+tabla_glm_train[2,2])
 cat(c('Accuracy: ', accuracy_reglog_train), '\n')
 
 ```
@@ -742,7 +788,7 @@ De la primer forma obtenemos un valor óptimo de k=15, del segundo modo k = 27, 
 
 ```{r}
 
-model_knn=knn.cv(scale(datos_train_numeric),cl=as.factor(datos_train_limpio$price_categ1),k=17)
+model_knn=knn.cv(scale(datos_train_numeric),cl=as.factor(datos_train_limpio$price_categ1),k=17, prob = TRUE)
 
 ```
 
@@ -773,19 +819,19 @@ leaflet(datos_train_limpio) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
 
 ```{r}
 
-tabla_knn=table(datos_train_limpio$price_categ1,model_knn)
-tabla_knn
+tabla_knn_train=table(datos_train_limpio$price_categ1, model_knn)
+tabla_knn_train
 
 #caras
-pred_means_caras_knn=tabla_knn[2,2]/(tabla_knn[2,2]+tabla_knn[1,2])
-rec_means_knn=tabla_knn[2,2]/(tabla_knn[2,2]+tabla_knn[2,1])
-F_caras_knn_train=(2*pred_means_caras_knn*rec_means_knn)/(pred_means_caras_knn+rec_means_knn)
+pred_caras_knn_train = tabla_knn_train[2,2]/(tabla_knn_train[2,2]+tabla_knn_train[1,2])
+rec_caras_knn_train = tabla_knn_train[2,2]/(tabla_knn_train[2,2]+tabla_knn_train[2,1])
+F_caras_knn_train=(2*pred_caras_knn_train*rec_caras_knn_train)/(pred_caras_knn_train+rec_caras_knn_train)
 cat(c('F1 caras: ', F_caras_knn_train), '\n')
 
 #baratas
-pred_means_baratas_knn=tabla_knn[1,1]/(tabla_knn[1,1]+tabla_knn[2,1])
-rec_means_baratas_knn=tabla_knn[1,1]/(tabla_knn[1,1]+tabla_knn[1,2])
-F_baratas_knn_train=(2*pred_means_baratas_knn*rec_means_baratas_knn)/(pred_means_baratas_knn+rec_means_baratas_knn)
+pred_baratas_knn_train=tabla_knn_train[1,1]/(tabla_knn_train[1,1]+tabla_knn_train[2,1])
+rec_baratas_knn_train=tabla_knn_train[1,1]/(tabla_knn_train[1,1]+tabla_knn_train[1,2])
+F_baratas_knn_train=(2*pred_baratas_knn_train*rec_baratas_knn_train)/(pred_baratas_knn_train+rec_baratas_knn_train)
 cat(c('F1 baratas: ', F_baratas_knn_train), '\n')
 
 
@@ -794,8 +840,9 @@ F_knn_train= (F_caras_knn_train+F_baratas_knn_train)/2
 cat(c('F1 global: ', F_knn_train), '\n')
 
 
-accuracy_knn_train= (tabla_knn[1,1]+tabla_knn[2,2]) / (tabla_knn[1,1]+tabla_knn[1,2]+tabla_knn[2,1]+tabla_knn[2,2])
+accuracy_knn_train= (tabla_knn_train[1,1]+tabla_knn_train[2,2]) / (tabla_knn_train[1,1]+tabla_knn_train[1,2]+tabla_knn_train[2,1]+tabla_knn_train[2,2])
 cat(c('Accuracy: ', accuracy_knn_train), '\n')
+
 ```
 
 
@@ -803,21 +850,19 @@ cat(c('Accuracy: ', accuracy_knn_train), '\n')
 
 ```{r}
 
-model_knn_test=knn(scale(datos_train_numeric),scale(datos_test_numeric),cl=datos_train_limpio$price_categ1,k=17)
-
-tabla_knn_test=table(datos_test_limpio$price_categ1, model_knn_test)
+tabla_knn_test=table(datos_test_limpio$price_categ1, knn(scale(datos_train_numeric), scale(datos_test_numeric),cl=datos_train_limpio$price_categ1,k=17))
 tabla_knn_test
 
 #caras
-pred_means_caras_knn_test=tabla_knn_test[2,2]/(tabla_knn_test[2,2]+tabla_knn_test[1,2])
-rec_means_knn_test=tabla_knn_test[2,2]/(tabla_knn_test[2,2]+tabla_knn_test[2,1])
-F_caras_knn_test=(2*pred_means_caras_knn_test*rec_means_knn_test)/(pred_means_caras_knn_test+rec_means_knn_test)
+pred_caras_knn_test=tabla_knn_test[2,2]/(tabla_knn_test[2,2]+tabla_knn_test[1,2])
+rec_caras_knn_test=tabla_knn_test[2,2]/(tabla_knn_test[2,2]+tabla_knn_test[2,1])
+F_caras_knn_test=(2*pred_caras_knn_test*rec_caras_knn_test)/(pred_caras_knn_test+rec_caras_knn_test)
 cat(c('F1 caras: ', F_caras_knn_test), '\n')
 
 #baratas
-pred_means_baratas_knn_test=tabla_knn_test[1,1]/(tabla_knn_test[1,1]+tabla_knn_test[2,1])
-rec_means_baratas_knn_test=tabla_knn_test[1,1]/(tabla_knn_test[1,1]+tabla_knn_test[1,2])
-F_baratas_knn_test=(2*pred_means_baratas_knn_test*rec_means_baratas_knn_test)/(pred_means_baratas_knn_test+rec_means_baratas_knn_test)
+pred_baratas_knn_test=tabla_knn_test[1,1]/(tabla_knn_test[1,1]+tabla_knn_test[2,1])
+rec_baratas_knn_test=tabla_knn_test[1,1]/(tabla_knn_test[1,1]+tabla_knn_test[1,2])
+F_baratas_knn_test=(2*pred_baratas_knn_test*rec_baratas_knn_test)/(pred_baratas_knn_test+rec_baratas_knn_test)
 cat(c('F1 baratas: ', F_baratas_knn_test), '\n')
 
 
@@ -828,27 +873,27 @@ cat(c('F1 global: ', F_knn_test), '\n')
 
 accuracy_knn_test= (tabla_knn_test[1,1]+tabla_knn_test[2,2]) / (tabla_knn_test[1,1]+tabla_knn_test[1,2]+tabla_knn_test[2,1]+tabla_knn_test[2,2])
 cat(c('Accuracy: ', accuracy_knn_test), '\n')
+
 ```
 
 
 ### Validación
 
 ```{r}
-model_knn_validacion=knn(scale(datos_train_numeric),scale(datos_validacion_numeric),cl=datos_train_limpio$price_categ1,k=17)
 
-tabla_knn_validacion=table(datos_validacion_limpio$price_categ1, model_knn_validacion)
+tabla_knn_validacion=table(datos_validacion_limpio$price_categ1, knn(scale(datos_train_numeric), scale(datos_validacion_numeric),cl=datos_train_limpio$price_categ1,k=17))
 tabla_knn_validacion
 
 #caras
-pred_means_caras_knn_validacion=tabla_knn_validacion[2,2]/(tabla_knn_validacion[2,2]+tabla_knn_validacion[1,2])
-rec_means_knn_validacion=tabla_knn_validacion[2,2]/(tabla_knn_validacion[2,2]+tabla_knn_validacion[2,1])
-F_caras_knn_validacion=(2*pred_means_caras_knn_validacion*rec_means_knn_validacion)/(pred_means_caras_knn_validacion+rec_means_knn_validacion)
+pred_caras_knn_validacion=tabla_knn_validacion[2,2]/(tabla_knn_validacion[2,2]+tabla_knn_validacion[1,2])
+rec_caras_knn_validacion=tabla_knn_validacion[2,2]/(tabla_knn_validacion[2,2]+tabla_knn_validacion[2,1])
+F_caras_knn_validacion=(2*pred_caras_knn_validacion*rec_caras_knn_validacion)/(pred_caras_knn_validacion+rec_caras_knn_validacion)
 cat(c('F1 caras: ', F_caras_knn_validacion), '\n')
 
 #baratas
-pred_means_baratas_knn_validacion=tabla_knn_validacion[1,1]/(tabla_knn_validacion[1,1]+tabla_knn_validacion[2,1])
-rec_means_baratas_knn_validacion=tabla_knn_validacion[1,1]/(tabla_knn_validacion[1,1]+tabla_knn_validacion[1,2])
-F_baratas_knn_validacion=(2*pred_means_baratas_knn_validacion*rec_means_baratas_knn_validacion)/(pred_means_baratas_knn_validacion+rec_means_baratas_knn_validacion)
+pred_baratas_knn_validacion=tabla_knn_validacion[1,1]/(tabla_knn_validacion[1,1]+tabla_knn_validacion[2,1])
+rec_baratas_knn_validacion=tabla_knn_validacion[1,1]/(tabla_knn_validacion[1,1]+tabla_knn_validacion[1,2])
+F_baratas_knn_validacion=(2*pred_baratas_knn_validacion*rec_baratas_knn_validacion)/(pred_baratas_knn_validacion+rec_baratas_knn_validacion)
 cat(c('F1 baratas: ', F_baratas_knn_validacion), '\n')
 
 
@@ -860,6 +905,7 @@ cat(c('F1 global: ', F_knn_validacion), '\n')
 accuracy_knn_validacion= (tabla_knn_validacion[1,1]+tabla_knn_validacion[2,2]) / (tabla_knn_validacion[1,1]+tabla_knn_validacion[1,2]+tabla_knn_validacion[2,1]+tabla_knn_validacion[2,2])
 cat(c('Accuracy: ', accuracy_knn_validacion), '\n')
 
+
 ```
 
 ## Decision Trees
@@ -870,87 +916,71 @@ cat(c('Accuracy: ', accuracy_knn_validacion), '\n')
 ```{r}
 
 #quitamos lat y long:
-datos_decision_tree<-datos_train_limpio[,-c(11,12)]
+datos_decision_tree<-datos_train_limpio[,-c(10,11)]
 
-decisiontree_model=rpart(price_categ1~., data=datos_decision_tree,parms=list(split="gini") )
-#resumen=summary(decisiontree_model)
-print(decisiontree_model)
 
-#kk=as.data.frame(summary(decisiontree_model))
+decisiontree_model=rpart(price_categ1~., 
+                         data=datos_decision_tree, 
+                         parms=list(split="gini"),
+                         control = rpart.control(cp = 0.005, maxdepth = 5, minbucket = 400))
+# print(decisiontree_model)
 
-fancyRpartPlot(decisiontree_model)
-#rpart.plot(decisiontree_model)
-#prp(decisiontree_model, type = 2, extra = 6, split.font = 3)
+fancyRpartPlot(decisiontree_model, caption='')
 
 ```
 
 ```{r}
 
 tabla_train_arbol=table(obs = datos_decision_tree$price_categ1, pred = predict(decisiontree_model, type = "class"))
-
 tabla_train_arbol
-```
 
-```{r}
 #caras
-pred.means2=tabla_train_arbol[2,2]/(tabla_train_arbol[2,2]+tabla_train_arbol[1,2])
-rec.means2=tabla_train_arbol[2,2]/(tabla_train_arbol[2,2]+tabla_train_arbol[2,1])
-F_caras_dt_train=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
-F_caras_dt_train
-tabla_train_arbol
-```
+pred_caras_dt_train = tabla_train_arbol[2,2]/(tabla_train_arbol[2,2]+tabla_train_arbol[1,2])
+rec_caras_dt_train = tabla_train_arbol[2,2]/(tabla_train_arbol[2,2]+tabla_train_arbol[2,1])
+F_caras_dt_train=(2*pred_caras_dt_train*rec_caras_dt_train)/(pred_caras_dt_train+rec_caras_dt_train)
+cat(c('F1 caras: ', F_caras_dt_train), '\n')
 
-```{r}
 #baratas
-pred.means2=tabla_train_arbol[1,1]/(tabla_train_arbol[1,1]+tabla_train_arbol[2,1])
-rec.means2=tabla_train_arbol[1,1]/(tabla_train_arbol[1,1]+tabla_train_arbol[1,2])
-F_baratas_dt_train=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
-F_baratas_dt_train
-tabla_train_arbol
-```
-```{r}
+pred_baratas_dt_train = tabla_train_arbol[1,1]/(tabla_train_arbol[1,1]+tabla_train_arbol[2,1])
+rec_baratas_dt_train = tabla_train_arbol[1,1]/(tabla_train_arbol[1,1]+tabla_train_arbol[1,2])
+F_baratas_dt_train=(2*pred_baratas_dt_train*rec_baratas_dt_train)/(pred_baratas_dt_train+rec_baratas_dt_train)
+cat(c('F1 baratas: ', F_baratas_dt_train), '\n')
+
 #Media de la F-MEDIDA para Decision Tree
 F_dt_train= (F_caras_dt_train+F_baratas_dt_train)/2
-F_dt_train
+cat(c('F1 global: ', F_dt_train), '\n')
 
-```
-
-
-```{r}
 accuracy_dt_train = (tabla_train_arbol[1,1]+tabla_train_arbol[2,2]) / (tabla_train_arbol[1,1]+tabla_train_arbol[1,2]+tabla_train_arbol[2,1]+tabla_train_arbol[2,2])
-accuracy_dt_train
+cat(c('Accuracy: ', F_dt_train), '\n')
+
 ```
 
 ### Test
 
 ```{r}
 
+tabla_test_arbol=table(obs = datos_test_limpio$price_categ1, pred = predict(decisiontree_model, datos_test_limpio[,-15], type = "class"))
+tabla_test_arbol
 
-tabla.test.arbol1=table(obs = datos_test_limpio$price_categ1, pred = predict(decisiontree_model,datos_test_limpio[,-15], type ="class"))
-
-tabla.test.arbol1
 #caras
-pred.means2=tabla.test.arbol1[2,2]/(tabla.test.arbol1[2,2]+tabla.test.arbol1[1,2])
-rec.means2=tabla.test.arbol1[2,2]/(tabla.test.arbol1[2,2]+tabla.test.arbol1[2,1])
-F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
-F_medida.means2
-tabla.test.arbol1
+pred_caras_dt_test = tabla_test_arbol[2,2]/(tabla_test_arbol[2,2]+tabla_test_arbol[1,2])
+rec_caras_dt_test = tabla_test_arbol[2,2]/(tabla_test_arbol[2,2]+tabla_test_arbol[2,1])
+F_caras_dt_test=(2*pred_caras_dt_test*rec_caras_dt_test)/(pred_caras_dt_test+rec_caras_dt_test)
+cat(c('F1 caras: ', F_caras_dt_test), '\n')
 
-
-```
-
-```{r}
 #baratas
-pred.means2=tabla.test.arbol1[1,1]/(tabla.test.arbol1[1,1]+tabla.test.arbol1[2,1])
-rec.means2=tabla.test.arbol1[1,1]/(tabla.test.arbol1[1,1]+tabla.test.arbol1[1,2])
-F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
-F_medida.means2
-tabla.test.arbol1
-```
+pred_baratas_dt_test = tabla_test_arbol[1,1]/(tabla_test_arbol[1,1]+tabla_test_arbol[2,1])
+rec_baratas_dt_test = tabla_test_arbol[1,1]/(tabla_test_arbol[1,1]+tabla_test_arbol[1,2])
+F_baratas_dt_test=(2*pred_baratas_dt_test*rec_baratas_dt_test)/(pred_baratas_dt_test+rec_baratas_dt_test)
+cat(c('F1 baratas: ', F_baratas_dt_test), '\n')
 
-```{r}
-accuracy = (tabla.test.arbol1[1,1]+tabla.test.arbol1[2,2]) / (tabla.test.arbol1[1,1]+tabla.test.arbol1[1,2]+tabla.test.arbol1[2,1]+tabla.test.arbol1[2,2])
-accuracy
+#Media de la F-MEDIDA para Decision Tree
+F_dt_test= (F_caras_dt_test+F_baratas_dt_test)/2
+cat(c('F1 global: ', F_dt_test), '\n')
+
+accuracy_dt_test = (tabla_test_arbol[1,1]+tabla_test_arbol[2,2]) / (tabla_test_arbol[1,1]+tabla_test_arbol[1,2]+tabla_test_arbol[2,1]+tabla_test_arbol[2,2])
+cat(c('Accuracy: ', F_dt_test), '\n')
+
 ```
 
 
@@ -958,80 +988,73 @@ accuracy
 
 ```{r}
 
+tabla_validacion_arbol=table(obs = datos_validacion_limpio$price_categ1, pred = predict(decisiontree_model, datos_validacion_limpio[,-15], type = "class"))
+tabla_validacion_arbol
 
-tabla.validacion.arbol1=table(obs = datos_validacion_limpio$price_categ1, pred = predict(decisiontree_model,datos_validacion_limpio[,-15], type ="class"))
-
-tabla.validacion.arbol1
 #caras
-pred.means2=tabla.validacion.arbol1[2,2]/(tabla.validacion.arbol1[2,2]+tabla.validacion.arbol1[1,2])
-rec.means2=tabla.validacion.arbol1[2,2]/(tabla.validacion.arbol1[2,2]+tabla.validacion.arbol1[2,1])
-F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
-F_medida.means2
-tabla.validacion.arbol1
+pred_caras_dt_validacion = tabla_validacion_arbol[2,2]/(tabla_validacion_arbol[2,2]+tabla_validacion_arbol[1,2])
+rec_caras_dt_validacion = tabla_validacion_arbol[2,2]/(tabla_validacion_arbol[2,2]+tabla_validacion_arbol[2,1])
+F_caras_dt_validacion=(2*pred_caras_dt_validacion*rec_caras_dt_validacion)/(pred_caras_dt_validacion+rec_caras_dt_validacion)
+cat(c('F1 caras: ', F_caras_dt_validacion), '\n')
 
-
-```
-
-```{r}
 #baratas
-pred.means2=tabla.validacion.arbol1[1,1]/(tabla.validacion.arbol1[1,1]+tabla.validacion.arbol1[2,1])
-rec.means2=tabla.validacion.arbol1[1,1]/(tabla.validacion.arbol1[1,1]+tabla.validacion.arbol1[1,2])
-F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
-F_medida.means2
-tabla.validacion.arbol1
+pred_baratas_dt_validacion = tabla_validacion_arbol[1,1]/(tabla_validacion_arbol[1,1]+tabla_validacion_arbol[2,1])
+rec_baratas_dt_validacion = tabla_validacion_arbol[1,1]/(tabla_validacion_arbol[1,1]+tabla_validacion_arbol[1,2])
+F_baratas_dt_validacion=(2*pred_baratas_dt_validacion*rec_baratas_dt_validacion)/(pred_baratas_dt_validacion+rec_baratas_dt_validacion)
+cat(c('F1 baratas: ', F_baratas_dt_validacion), '\n')
+
+#Media de la F-MEDIDA para Decision Tree
+F_dt_validacion= (F_caras_dt_validacion+F_baratas_dt_validacion)/2
+cat(c('F1 global: ', F_dt_validacion), '\n')
+
+accuracy_dt_validacion = (tabla_validacion_arbol[1,1]+tabla_validacion_arbol[2,2]) / (tabla_validacion_arbol[1,1]+tabla_validacion_arbol[1,2]+tabla_validacion_arbol[2,1]+tabla_validacion_arbol[2,2])
+cat(c('Accuracy: ', F_dt_validacion), '\n')
+
 ```
 
-```{r}
-accuracy = (tabla.validacion.arbol1[1,1]+tabla.validacion.arbol1[2,2]) / (tabla.validacion.arbol1[1,1]+tabla.validacion.arbol1[1,2]+tabla.validacion.arbol1[2,1]+tabla.validacion.arbol1[2,2])
-accuracy
-```
 
 ## Random Forest
 
 ### Train
 
 ```{r}
-randomforest_model=randomForest(price_categ1~., data=datos_train_limpio,parms=list(split="gini") )
-#print(randomforest_model)
+set.seed(1234)
+randomforest_model=randomForest(price_categ1~., 
+                                data=datos_train_limpio, 
+                                parms=list(split="gini"),
+                                ntree=200, 
+                                importance = FALSE, 
+                                proximity = FALSE, 
+                                mtry=6, 
+                                replace = TRUE)
+print(randomforest_model)
 
 ```
 
 ```{r}
 
-tabla_randomforest=table(obs = datos_train_limpio$price_categ1, pred = predict(randomforest_model, type = "class") )
+tabla_train_randomforest = table(obs = datos_train_limpio$price_categ1, pred = predict(randomforest_model, type = "class") )
+tabla_train_randomforest
 
-tabla_randomforest
-
-```
-
-```{r}
 #caras
-pred.means2=tabla_randomforest[2,2]/(tabla_randomforest[2,2]+tabla_randomforest[1,2])
-rec.means2=tabla_randomforest[2,2]/(tabla_randomforest[2,2]+tabla_randomforest[2,1])
-F_caras_rf_train=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
-F_caras_rf_train
-tabla_randomforest
-```
+pred_caras_rf_train = tabla_train_randomforest[2,2]/(tabla_train_randomforest[2,2]+tabla_train_randomforest[1,2])
+rec_caras_rf_train = tabla_train_randomforest[2,2]/(tabla_train_randomforest[2,2]+tabla_train_randomforest[2,1])
+F_caras_rf_train=(2*pred_caras_rf_train*rec_caras_rf_train)/(pred_caras_rf_train+rec_caras_rf_train)
+cat(c('F1 caras: ', F_caras_rf_train), '\n')
 
-```{r}
 #baratas
-pred.means2=tabla_randomforest[1,1]/(tabla_randomforest[1,1]+tabla_randomforest[2,1])
-rec.means2=tabla_randomforest[1,1]/(tabla_randomforest[1,1]+tabla_randomforest[1,2])
-F_baratas_rf_train=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
-F_baratas_rf_train
-tabla_randomforest
-```
-```{r}
+pred_baratas_rf_train = tabla_train_randomforest[1,1]/(tabla_train_randomforest[1,1]+tabla_train_randomforest[2,1])
+rec_baratas_rf_train=tabla_train_randomforest[1,1]/(tabla_train_randomforest[1,1]+tabla_train_randomforest[1,2])
+F_baratas_rf_train=(2*pred_baratas_rf_train*rec_baratas_rf_train)/(pred_baratas_rf_train+rec_baratas_rf_train)
+cat(c('F1 baratas: ', F_baratas_rf_train), '\n')
+
 #Media de la F-MEDIDA para Random Forest
 F_rf_train= (F_caras_rf_train+F_baratas_rf_train)/2
-F_rf_train
+cat(c('F1 global: ', F_rf_train), '\n')
 
-```
+accuracy_rf_train = (tabla_train_randomforest[1,1]+tabla_train_randomforest[2,2]) / (tabla_train_randomforest[1,1]+tabla_train_randomforest[1,2]+tabla_train_randomforest[2,1]+tabla_train_randomforest[2,2])
+cat(c('Accuracy: ', accuracy_rf_train), '\n')
 
-
-```{r}
-accuracy_rf_train = (tabla_randomforest[1,1]+tabla_randomforest[2,2]) / (tabla_randomforest[1,1]+tabla_randomforest[1,2]+tabla_randomforest[2,1]+tabla_randomforest[2,2])
-accuracy_rf_train
 ```
 
 
@@ -1039,180 +1062,174 @@ accuracy_rf_train
 
 ```{r}
 
-tabla_randomforest_test=table(obs = datos_test_limpio$price_categ1, pred = predict(randomforest_model,datos_test_limpio[,-15], type ="class"))
-tabla_randomforest_test
+tabla_test_randomforest = table(obs = datos_test_limpio$price_categ1, pred = predict(randomforest_model, datos_test_limpio[,-15], type = "class") )
+tabla_test_randomforest
 
 #caras
-pred.means2=tabla_randomforest_test[2,2]/(tabla_randomforest_test[2,2]+tabla_randomforest_test[1,2])
-rec.means2=tabla_randomforest_test[2,2]/(tabla_randomforest_test[2,2]+tabla_randomforest_test[2,1])
-F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
-F_medida.means2
-tabla_randomforest_test
+pred_caras_rf_test = tabla_test_randomforest[2,2]/(tabla_test_randomforest[2,2]+tabla_test_randomforest[1,2])
+rec_caras_rf_test = tabla_test_randomforest[2,2]/(tabla_test_randomforest[2,2]+tabla_test_randomforest[2,1])
+F_caras_rf_test=(2*pred_caras_rf_test*rec_caras_rf_test)/(pred_caras_rf_test+rec_caras_rf_test)
+cat(c('F1 caras: ', F_caras_rf_test), '\n')
 
-
-```
-
-```{r}
 #baratas
-pred.means2=tabla_randomforest_test[1,1]/(tabla_randomforest_test[1,1]+tabla_randomforest_test[2,1])
-rec.means2=tabla_randomforest_test[1,1]/(tabla_randomforest_test[1,1]+tabla_randomforest_test[1,2])
-F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
-F_medida.means2
-tabla_randomforest_test
-```
+pred_baratas_rf_test = tabla_test_randomforest[1,1]/(tabla_test_randomforest[1,1]+tabla_test_randomforest[2,1])
+rec_baratas_rf_test=tabla_test_randomforest[1,1]/(tabla_test_randomforest[1,1]+tabla_test_randomforest[1,2])
+F_baratas_rf_test=(2*pred_baratas_rf_test*rec_baratas_rf_test)/(pred_baratas_rf_test+rec_baratas_rf_test)
+cat(c('F1 baratas: ', F_baratas_rf_test), '\n')
 
-```{r}
-accuracy = (tabla_randomforest_test[1,1]+tabla_randomforest_test[2,2]) / (tabla_randomforest_test[1,1]+tabla_randomforest_test[1,2]+tabla_randomforest_test[2,1]+tabla_randomforest_test[2,2])
-accuracy
+#Media de la F-MEDIDA para Random Forest
+F_rf_test= (F_caras_rf_test+F_baratas_rf_test)/2
+cat(c('F1 global: ', F_rf_test), '\n')
+
+accuracy_rf_test = (tabla_test_randomforest[1,1]+tabla_test_randomforest[2,2]) / (tabla_test_randomforest[1,1]+tabla_test_randomforest[1,2]+tabla_test_randomforest[2,1]+tabla_test_randomforest[2,2])
+cat(c('Accuracy: ', accuracy_rf_test), '\n')
+
 ```
 
 ### Validacion
 
 ```{r}
 
+tabla_validacion_randomforest = table(obs = datos_validacion_limpio$price_categ1, pred = predict(randomforest_model, datos_validacion_limpio[,-15], type = "class") )
+tabla_validacion_randomforest
 
-tabla_randomforest_val=table(obs = datos_validacion_limpio$price_categ1, pred = predict(randomforest_model,datos_validacion_limpio[,-15], type ="class"))
-
-tabla_randomforest_val
 #caras
-pred.means2=tabla_randomforest_val[2,2]/(tabla_randomforest_val[2,2]+tabla_randomforest_val[1,2])
-rec.means2=tabla_randomforest_val[2,2]/(tabla_randomforest_val[2,2]+tabla_randomforest_val[2,1])
-F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
-F_medida.means2
-tabla_randomforest_val
+pred_caras_rf_validacion = tabla_validacion_randomforest[2,2]/(tabla_validacion_randomforest[2,2]+tabla_validacion_randomforest[1,2])
+rec_caras_rf_validacion = tabla_validacion_randomforest[2,2]/(tabla_validacion_randomforest[2,2]+tabla_validacion_randomforest[2,1])
+F_caras_rf_validacion=(2*pred_caras_rf_validacion*rec_caras_rf_validacion)/(pred_caras_rf_validacion+rec_caras_rf_validacion)
+cat(c('F1 caras: ', F_caras_rf_validacion), '\n')
 
-
-```
-
-```{r}
 #baratas
-pred.means2=tabla_randomforest_val[1,1]/(tabla_randomforest_val[1,1]+tabla_randomforest_val[2,1])
-rec.means2=tabla_randomforest_val[1,1]/(tabla_randomforest_val[1,1]+tabla_randomforest_val[1,2])
-F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
-F_medida.means2
-tabla_randomforest_val
-```
+pred_baratas_rf_validacion = tabla_validacion_randomforest[1,1]/(tabla_validacion_randomforest[1,1]+tabla_validacion_randomforest[2,1])
+rec_baratas_rf_validacion=tabla_validacion_randomforest[1,1]/(tabla_validacion_randomforest[1,1]+tabla_validacion_randomforest[1,2])
+F_baratas_rf_validacion=(2*pred_baratas_rf_validacion*rec_baratas_rf_validacion)/(pred_baratas_rf_validacion+rec_baratas_rf_validacion)
+cat(c('F1 baratas: ', F_baratas_rf_validacion), '\n')
 
-```{r}
-accuracy = (tabla_randomforest_val[1,1]+tabla_randomforest_val[2,2]) / (tabla_randomforest_val[1,1]+tabla_randomforest_val[1,2]+tabla_randomforest_val[2,1]+tabla_randomforest_val[2,2])
-accuracy
+#Media de la F-MEDIDA para Random Forest
+F_rf_validacion= (F_caras_rf_validacion+F_baratas_rf_validacion)/2
+cat(c('F1 global: ', F_rf_validacion), '\n')
+
+accuracy_rf_validacion = (tabla_validacion_randomforest[1,1]+tabla_validacion_randomforest[2,2]) / (tabla_validacion_randomforest[1,1]+tabla_validacion_randomforest[1,2]+tabla_validacion_randomforest[2,1]+tabla_validacion_randomforest[2,2])
+cat(c('Accuracy: ', accuracy_rf_validacion), '\n')
 ```
 
 
 ## SVM
 
 ```{r}
-modelo_svm <- e1071::svm(formula = price_categ1 ~., data = datos_train_limpio, kernel = "linear" , probability =TRUE)
+set.seed(1234)
+modelo_svm <- e1071::svm(formula = price_categ1 ~., 
+                         data = datos_train_limpio, 
+                         kernel = "linear", 
+                         probability =TRUE,
+                         cost=1)
 summary(modelo_svm)
 
-#plot(modelo_svm, datos_train_limpio_dt)
 ```
-```{r}
-#set.seed(1)
-#tune.out = tune(svm,price_categ1 ~ ., data = datos_train_limpio_dt, kernel = "linear", ranges = list(cost = c(0.001,
-#0.01, 0.1, 1, 5, 10, 100)))
 
-```
+
 
 ### Train
 
 ```{r}
 
 tabla_svm_train=table(obs = datos_train_limpio$price_categ1, pred = predict(modelo_svm,datos_train_limpio[,-15], type ="class"))
-
 tabla_svm_train
+
 #caras
-pred.means2=tabla_svm_train[2,2]/(tabla_svm_train[2,2]+tabla_svm_train[1,2])
-rec.means2=tabla_svm_train[2,2]/(tabla_svm_train[2,2]+tabla_svm_train[2,1])
-F_caras_svm_train=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
-F_caras_svm_train
-tabla_svm_train
+pred_caras_svm_train=tabla_svm_train[2,2]/(tabla_svm_train[2,2]+tabla_svm_train[1,2])
+rec_caras_svm_train=tabla_svm_train[2,2]/(tabla_svm_train[2,2]+tabla_svm_train[2,1])
+F_caras_svm_train=(2*pred_caras_svm_train*rec_caras_svm_train)/(pred_caras_svm_train+rec_caras_svm_train)
+cat(c('F1 caras: ', F_caras_svm_train), '\n')
 
-
-```
-
-```{r}
 #baratas
-pred_means2=tabla_svm_train[1,1]/(tabla_svm_train[1,1]+tabla_svm_train[2,1])
-rec_means2=tabla_svm_train[1,1]/(tabla_svm_train[1,1]+tabla_svm_train[1,2])
-F_baratas_svm_train=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
-F_baratas_svm_train
-tabla_svm_train
-```
-```{r}
+pred_baratas_svm_train=tabla_svm_train[1,1]/(tabla_svm_train[1,1]+tabla_svm_train[2,1])
+rec_baratas_svm_train=tabla_svm_train[1,1]/(tabla_svm_train[1,1]+tabla_svm_train[1,2])
+F_baratas_svm_train=(2*pred_baratas_svm_train*rec_baratas_svm_train)/(pred_baratas_svm_train+rec_baratas_svm_train)
+cat(c('F1 baratas: ', F_baratas_svm_train), '\n')
+
 #F-Medida para SVM
 
 F_svm_train= (F_caras_svm_train+F_baratas_svm_train)/2
-F_svm_train
+cat(c('F1 global: ', F_svm_train), '\n')
 
-```
-
-
-```{r}
 accuracy_svm_train = (tabla_svm_train[1,1]+tabla_svm_train[2,2]) / (tabla_svm_train[1,1]+tabla_svm_train[1,2]+tabla_svm_train[2,1]+tabla_svm_train[2,2])
-accuracy_svm_train
+cat(c('Accuracy: ', accuracy_svm_train), '\n')
+
 ```
 
 ### Test
 
 ```{r}
 
-tabla_svm_test=table(obs = datos_test_limpio$price_categ1, pred = predict(modelo_svm,datos_test_limpio[,-15], type ="class"))
+tabla_svm_test=table(obs = datos_test_limpio$price_categ1,  pred = predict(modelo_svm,datos_test_limpio[,-15], type ="class"))
 tabla_svm_test
 
 #caras
-pred.means2=tabla_svm_test[2,2]/(tabla_svm_test[2,2]+tabla_svm_test[1,2])
-rec.means2=tabla_svm_test[2,2]/(tabla_svm_test[2,2]+tabla_svm_test[2,1])
-F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
-F_medida.means2
-tabla_svm_test
+pred_caras_svm_test=tabla_svm_test[2,2]/(tabla_svm_test[2,2]+tabla_svm_test[1,2])
+rec_caras_svm_test=tabla_svm_test[2,2]/(tabla_svm_test[2,2]+tabla_svm_test[2,1])
+F_caras_svm_test=(2*pred_caras_svm_test*rec_caras_svm_test)/(pred_caras_svm_test+rec_caras_svm_test)
+cat(c('F1 caras: ', F_caras_svm_test), '\n')
 
-
-```
-
-```{r}
 #baratas
-pred.means2=tabla_svm_test[1,1]/(tabla_svm_test[1,1]+tabla_svm_test[2,1])
-rec.means2=tabla_svm_test[1,1]/(tabla_svm_test[1,1]+tabla_svm_test[1,2])
-F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
-F_medida.means2
-tabla_svm_test
+pred_baratas_svm_test=tabla_svm_test[1,1]/(tabla_svm_test[1,1]+tabla_svm_test[2,1])
+rec_baratas_svm_test=tabla_svm_test[1,1]/(tabla_svm_test[1,1]+tabla_svm_test[1,2])
+F_baratas_svm_test=(2*pred_baratas_svm_test*rec_baratas_svm_test)/(pred_baratas_svm_test+rec_baratas_svm_test)
+cat(c('F1 baratas: ', F_baratas_svm_test), '\n')
+
+#F-Medida para SVM
+
+F_svm_test= (F_caras_svm_test+F_baratas_svm_test)/2
+cat(c('F1 global: ', F_svm_test), '\n')
+
+accuracy_svm_test = (tabla_svm_test[1,1]+tabla_svm_test[2,2]) / (tabla_svm_test[1,1]+tabla_svm_test[1,2]+tabla_svm_test[2,1]+tabla_svm_test[2,2])
+cat(c('Accuracy: ', accuracy_svm_test), '\n')
+
+
 ```
 
-```{r}
-accuracy = (tabla_svm_test[1,1]+tabla_svm_test[2,2]) / (tabla_svm_test[1,1]+tabla_svm_test[1,2]+tabla_svm_test[2,1]+tabla_svm_test[2,2])
-accuracy
-```
 
 ### Validacion
 
 ```{r}
 
-tabla_svm_val=table(obs = datos_validacion_limpio$price_categ1, pred = predict(modelo_svm,datos_validacion_limpio[,-15], type ="class"))
+tabla_svm_validacion=table(obs = datos_validacion_limpio$price_categ1,  pred = predict(modelo_svm,datos_validacion_limpio[,-15], type ="class"))
+tabla_svm_validacion
 
-tabla_svm_val
 #caras
-pred.means2=tabla_svm_val[2,2]/(tabla_svm_val[2,2]+tabla_svm_val[1,2])
-rec.means2=tabla_svm_val[2,2]/(tabla_svm_val[2,2]+tabla_svm_val[2,1])
-F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
-F_medida.means2
-```
+pred_caras_svm_validacion=tabla_svm_validacion[2,2]/(tabla_svm_validacion[2,2]+tabla_svm_validacion[1,2])
+rec_caras_svm_validacion=tabla_svm_validacion[2,2]/(tabla_svm_validacion[2,2]+tabla_svm_validacion[2,1])
+F_caras_svm_validacion=(2*pred_caras_svm_validacion*rec_caras_svm_validacion)/(pred_caras_svm_validacion+rec_caras_svm_validacion)
+cat(c('F1 caras: ', F_caras_svm_validacion), '\n')
 
-```{r}
 #baratas
-pred.means2=tabla_svm_val[1,1]/(tabla_svm_val[1,1]+tabla_svm_val[2,1])
-rec.means2=tabla_svm_val[1,1]/(tabla_svm_val[1,1]+tabla_svm_val[1,2])
-F_medida.means2=(2*pred.means2*rec.means2)/(pred.means2+rec.means2)
-F_medida.means2
-tabla_svm_val
+pred_baratas_svm_validacion=tabla_svm_validacion[1,1]/(tabla_svm_validacion[1,1]+tabla_svm_validacion[2,1])
+rec_baratas_svm_validacion=tabla_svm_validacion[1,1]/(tabla_svm_validacion[1,1]+tabla_svm_validacion[1,2])
+F_baratas_svm_validacion=(2*pred_baratas_svm_validacion*rec_baratas_svm_validacion)/(pred_baratas_svm_validacion+rec_baratas_svm_validacion)
+cat(c('F1 baratas: ', F_baratas_svm_validacion), '\n')
+
+#F-Medida para SVM
+
+F_svm_validacion= (F_caras_svm_validacion+F_baratas_svm_validacion)/2
+cat(c('F1 global: ', F_svm_validacion), '\n')
+
+accuracy_svm_validacion = (tabla_svm_validacion[1,1]+tabla_svm_validacion[2,2]) / (tabla_svm_validacion[1,1]+tabla_svm_validacion[1,2]+tabla_svm_validacion[2,1]+tabla_svm_validacion[2,2])
+cat(c('Accuracy: ', accuracy_svm_validacion), '\n')
+
 ```
+
+
+### Ajuste de hiperparámetros
 
 ```{r}
-accuracy = (tabla_svm_val[1,1]+tabla_svm_val[2,2]) / (tabla_svm_val[1,1]+tabla_svm_val[1,2]+tabla_svm_val[2,1]+tabla_svm_val[2,2])
-accuracy
+
+svm_tune <- tune(svm, price_categ1 ~., data = datos_train_limpio, ranges = list(cost = 2^(2:4)), tunecontrol = tune.control(sampling = "fix"))
+summary(svm_tune)
+plot(svm_tune)
+
 ```
 
-
+Pese a que el ajuste de hiperparámetros indica que el valor óptimo de cost es 8, repetimos los cálculos y la F1-global mejora muy poco (aprox. 0.0004). Pasamos de una F1 de 0.8686 a una F1 de 0.8690.
 
 # GAM
 
@@ -1270,6 +1287,7 @@ dif_media_test
 Una vez que se han entrenado y optimizado distintos modelos, se tiene que identificar cuál de ellos consigue mejores resultados para el problema en cuestión, en este caso, predecir si una casa es barata o cara. Con los datos disponibles, existen dos formas de comparar los modelos. Si bien las dos no tienen por qué dar los mismos resultados, son complementarias a la hora de tomar una decisión final.
 
 ```{r}
+
 models_cross = data.frame(
 "modelo"= c('GLM','knn','Decision_Tree','Random_Forest','SVM'),
  "F_Medida_train" = c(F_reglog_train,F_knn_train,F_dt_train,F_rf_train,F_svm_train))
@@ -1282,7 +1300,7 @@ ggplot(data=models_cross, aes(x=modelo, y=F_Medida_train, fill=modelo)) +
 ```
 
 
-# CURVA ROC.
+# Curva ROC.
 
 ```{r}
 
@@ -1290,6 +1308,12 @@ ggplot(data=models_cross, aes(x=modelo, y=F_Medida_train, fill=modelo)) +
 predictions_glm <- predict(model_glm, newdata = datos_train_rl, type = "response")
 pred_glm <- prediction(predictions_glm, datos_train_rl$price_categ1)
 perf_glm <- performance(pred_glm,"tpr","fpr")
+
+# KNN
+# model_knn=knn.cv(scale(datos_train_numeric),cl=as.factor(datos_train_limpio$price_categ1),k=17, prob = TRUE)
+predictions_Knn <- knn(scale(datos_train_numeric), scale(datos_train_numeric), cl=datos_train_limpio$price_categ1, k=17, prob = TRUE)
+pred_knn <- prediction(attr(predictions_Knn,"prob"), datos_train_limpio$price_categ1)
+perf_knn <- performance(pred_knn,"tpr","fpr")
 
 # ARBOL DE DECISION
 predictions_tree <- predict(decisiontree_model, newdata = datos_decision_tree, type = "prob")
@@ -1312,26 +1336,13 @@ plot(perf_glm,col="blue")
 plot(pref_tree, col="red",add = TRUE)
 plot(perf_rf,col="green", add = TRUE)
 plot(perf_svm, col="yellow",add = TRUE)
-legend(x="right" ,legend=c("GLM","DT","RF","SVM"),
-fill=c("blue","red","green","yellow"),cex=0.8)
+plot(perf_knn, col="orange",add = TRUE)
+legend(x="right", legend=c("GLM","DT","RF","SVM","KNN"), fill=c("blue","red","green","yellow","orange"), cex=0.8)
 
 ```
 
-```{r}
 
-```
 
-# Ideas
-
-cambiar el modelo para que aumente 1000 más la variable respuesta
-
-## para estructurarlo
-
-Primero transformaciones de train, test validacion
-Luego cada modelo por separado con su train y test y validacion
-
-## objetivo
-
-## concluisones
+# Concluisones.
 
 * nos quedamos con la acuracy ya que es la única medida que tiene en cuenta los aciertos de las casas caras y de las baratas (la F_medida no tiene en cuenta los TN y la sensibilidad y especificidad solo tienen en cuenta que acierte las caras o las baratas pero no que acierte en ambas)
