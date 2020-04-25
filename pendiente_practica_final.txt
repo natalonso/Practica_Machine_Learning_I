@@ -4,14 +4,14 @@ PENDIENTE MACHINE LEARNING I
 -Pregutar a victor:
 -Revisar la interpretación del PCA (gráfica biplot).
 -Ver si hacemos tune para dt tune.rpart.
--Ver si podemos añadir el knn a la curva ROC.
+-Interpreter la curva ROC del knn.
 -Revisar curva roc para ver si dejar tpr/fpr u otras métricas.
 
 -Pendiente nosotras:
 -NATALIA: revisar gráfica glm apuntes del profe.
 -Ver si añadimos una gráfica para knn con fórmula para comparar con el tune.
 -Mejorar la gráfica de los valores de k.
-
+-Sacar los alfa de la curva R: mejor punto de corte.
 
 #############################
 KNN 
