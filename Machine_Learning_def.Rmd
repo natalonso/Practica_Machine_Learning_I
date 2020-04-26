@@ -79,16 +79,17 @@ Lo que queremos hacer con estos datos es clasificar/predecir las viviendas confo
 
 En nuestro estudio inicial, la variable **"Precio"** es continua, por lo que vamos a categorizarla. Para decidir las categorizaciones se ha usado los cuantiles. Se van a realizar dos tipos de categorizaciones:
 
--  **Categorización 1**: se ha categorizado en dos grupos:
 
-  + **B1**: casas baratas (casas con un precio < 500.000).
-  + **C1**: casas caras (casas con un precio > 500.000).
+  -  **Categorización 1**: se ha categorizado en dos grupos:
 
--  **Categorización 2**: se ha categorizado en tres grupos:
+    + **B1**: casas baratas (casas con un precio < 500.000).
+    + **C1**: casas caras (casas con un precio > 500.000).
 
-  + **B2**: casas baratas (casas con un precio < 330.000).
-  + **M2**: casas con precio medio  (330.000 < precio < 650.000).
-  + **C2**: casas caras (precio > 650.000).
+  -  **Categorización 2**: se ha categorizado en tres grupos:
+
+    + **B2**: casas baratas (casas con un precio < 330.000).
+    + **M2**: casas con precio medio  (330.000 < precio < 650.000).
+    + **C2**: casas caras (precio > 650.000).
 
 ```{r}
 #Categorizamos la variable respuesta price:
