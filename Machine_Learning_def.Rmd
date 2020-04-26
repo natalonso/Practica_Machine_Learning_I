@@ -79,8 +79,16 @@ Lo que queremos hacer con estos datos es clasificar/predecir las viviendas confo
 
 En nuestro estudio inicial, la variable **"Precio"** es continua, por lo que vamos a categorizarla. Para decidir las categorizaciones se ha usado los cuantiles. Se van a realizar dos tipos de categorizaciones:
 
--  **Categorización 1**: se ha categorizado en dos grupos, **B1**, casas baratas (casas con un precio < 500.000) y casas caras, **C1**, (casas con un precio > 500.000).
-- **Categorización 2**: se ha categorizado en tres grupos, **B2**, casas baratas (casas con un precio < 330.000), casas con un precio medio, **M2** (330.000 < precio < 650.000) y casas caras, **C2** (precio > 650.000).
+-  **Categorización 1**: se ha categorizado en dos grupos:
+
+  + **B1**: casas baratas (casas con un precio < 500.000).
+  + **C1**: casas caras (casas con un precio > 500.000).
+
+- **Categorización 2**: se ha categorizado en tres grupos:
+
+  + **B2**: casas baratas (casas con un precio < 330.000).
+  + **M2**: casas con precio medio  (330.000 < precio < 650.000).
+  + **C2**: casas caras (precio > 650.000).
 
 ```{r}
 #Categorizamos la variable respuesta price:
@@ -108,13 +116,15 @@ leaflet(datos) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
   addCircles(lng = ~long, lat = ~lat,
              color = ~factpal2(datos$price_categ1))  %>%
   # controls
-  setView(lng=center_lon, lat=center_lat,zoom = 12) %>%
+  setView(lng=center_lon, lat=center_lat, zoom = 9) %>%
 
   addLegend("bottomright", pal = factpal2 , values = ~datos$price_categ1,
             title = "Tipos de Casas",
             opacity = 1)
 
 ```
+
+
 
 En este otro mapa se puede visualizar cómo se distribuyen las casas según el precio en tres categorías:**"Caras"**, **"Medio"** y **"Baratas"**. Se puede observar cómo con esta categorización no está tan clara la separación entre clases.
 
@@ -130,7 +140,7 @@ leaflet(datos) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
   addCircles(lng = ~long, lat = ~lat,
              color = ~factpal2(datos$price_categ2))  %>%
   # controls
-  setView(lng=center_lon, lat=center_lat,zoom = 12) %>%
+  setView(lng=center_lon, lat=center_lat,zoom = 9) %>%
 
   addLegend("bottomright", pal = factpal2 , values = ~datos$price_categ2,
             title = "Tipos de Casas 3 categorías",
@@ -153,8 +163,8 @@ datos$price_categ2= NULL
 Se va a separar los datos en los 3 conjuntos de datos fundamentales:  
 
 -  Conjunto de datos de **entrenamiento**: en nuestro estudio **datos_train**, se corresponde con el 70% del total de los datos.
--  Conjunto de datos de **validación**: en nuestro estudio **datos_validacion**, se corresponde con el 15% del total de los datos.
 -  Conjunto de datos de **test**: en nuestro estudio **datos_test**, se corresponde con el 15% del total de los datos.
+-  Conjunto de datos de **validación**: en nuestro estudio **datos_validacion**, se corresponde con el 15% del total de los datos.
 
 
 ```{r, fig.align='center', warning=FALSE}
@@ -202,6 +212,8 @@ Se van a realizar transformaciones de un conjunto de variables, estas transforma
 
 ### Transformaciones datos Train
 
+Se realizan las transformaciones anteriormente mencionada y se eliminan outliers:
+
 ```{r, fig.align='center', warning=FALSE}
 datos_train <- datos_train[,-2]
 
@@ -228,11 +240,8 @@ datos_train$yr_renovated_catg <-cut(datos_train$yr_renovated, breaks=c(-0.5,1933
 
 datos_train$zipcode<-as.factor(datos_train$zipcode)
 
-```
+# Eliminación de Outliers
 
-### Eliminación de Outliers
-
-```{r, fig.align='center', warning=FALSE}
 datos_train$posicion<-c(1:nrow(datos_train))
 indices_cero_habitaciones<-datos_train[datos_train$bedrooms==0,]$posicion
 datos_train<-datos_train[-indices_cero_habitaciones,]
@@ -244,10 +253,11 @@ datos_train<-datos_train[-indices_cero_banos,]
 datos_train$posicion<-c(1:nrow(datos_train))
 indice_hab33 <- datos_train[datos_train$bedrooms==33,]$posicion
 datos_train[datos_train$posicion == indice_hab33,]$bedrooms = 3
+
 ```
 
 
-### Transformaciones adicionales:
+- Transformaciones adicionales:
 
 Se han realizado dos categorizaciones adicionales sobre el conjunto de datos. Después de implementar varios modelos, se llegó a la conclusión de que algunas variables podían mejorar los resultados de los modelos siendo agrupadas. Para analizar cómo recategorizar estas variables se ha usado un árbol de decisión. Las variables son:  **zipcode** y **bathrooms_group**.
 
@@ -290,12 +300,10 @@ datos_train$bathrooms_group <- cut(datos_train$bathrooms_group, breaks = c(-1,2.
 
 ```{r}
 
-# Limpiamos el dataframe
+# Limpiamos el dataframe:
 datos_train_limpio <- datos_train[c(3,21:25,8:10,26,16,17,29,27,20)]
 
-#Eliminamos sqft_above porque es una combinalción lineal de sqft_living, están altamente correladas........
-
-##### REVISAR COMENTARIO
+#Eliminamos sqft_above:
 datos_train_limpio$log_above = NULL
 
 datos_train_numeric <- datos_train_limpio %>% select_if(is.numeric)
@@ -337,14 +345,7 @@ datos_test$zipcode<-as.factor(datos_test$zipcode)
 datos_test$zona<-recode(datos_test$zipcode, " 98001=1; 98002=1; 98003=1; 98010=1; 98011=1; 98014=1; 98019=1; 98022=1; 98023=1; 98024=1; 98028=1; 98030=1; 98031=1; 98032=1; 98034=1; 98038=1; 98042=1; 98045=1; 98055=1; 98056=1; 98058=1; 98059=1; 98070=1; 98092=1 ;98106=1; 98108=1; 98118=1; 98125=1; 98126=1; 98133=1; 98144=1; 98146=1; 98148=1; 98155=1; 98166=1; 98168=1; 98178=1; 98188=1; 98198=1; 98004=2; 98005=2; 98006=2; 98007=2; 98008=2; 98027=2; 98029=2; 98033=2; 98039=2; 98040=2; 98052=2; 98053=2; 98065=2; 98072=2; 98074=2; 98075=2; 98077=2; 98102=2; 98103=2; 98105=2; 98107=2; 98109=2; 98112=2; 98115=2; 98116=2; 98117=2; 98119=2; 98122=2; 98136=2; 98177=2; 98199=2")
 
 datos_test$zipcode = NULL
-
 datos_test$bathrooms_group <- cut(datos_test$bathrooms_group, breaks = c(-1,2.5,8),labels=c(0,1))
-
-```
-
-
-
-```{r}
 datos_test_limpio <- datos_test[c(3,21:25,8:10,26,16,17,28,27,20)]
 datos_test_limpio$log_above = NULL
 datos_test_numeric <- datos_test_limpio %>% select_if(is.numeric)
@@ -386,12 +387,7 @@ datos_validacion$zipcode<-as.factor(datos_validacion$zipcode)
 datos_validacion$zona<-recode(datos_validacion$zipcode, " 98001=1; 98002=1; 98003=1; 98010=1; 98011=1; 98014=1; 98019=1; 98022=1; 98023=1; 98024=1; 98028=1; 98030=1; 98031=1; 98032=1; 98034=1; 98038=1; 98042=1; 98045=1; 98055=1; 98056=1; 98058=1; 98059=1; 98070=1; 98092=1 ;98106=1; 98108=1; 98118=1; 98125=1; 98126=1; 98133=1; 98144=1; 98146=1; 98148=1; 98155=1; 98166=1; 98168=1; 98178=1; 98188=1; 98198=1; 98004=2; 98005=2; 98006=2; 98007=2; 98008=2; 98027=2; 98029=2; 98033=2; 98039=2; 98040=2; 98052=2; 98053=2; 98065=2; 98072=2; 98074=2; 98075=2; 98077=2; 98102=2; 98103=2; 98105=2; 98107=2; 98109=2; 98112=2; 98115=2; 98116=2; 98117=2; 98119=2; 98122=2; 98136=2; 98177=2; 98199=2")
 
 datos_validacion$zipcode = NULL
-
 datos_validacion$bathrooms_group <- cut(datos_validacion$bathrooms_group, breaks = c(-1,2.5,8),labels=c(0,1))
-
-```
-
-```{r}
 datos_validacion_limpio <- datos_validacion[c(3,21:25,8:10,26,16,17,28,27,20)]
 datos_validacion_limpio$log_above = NULL
 datos_validacion_numeric <- datos_validacion_limpio %>% select_if(is.numeric)
@@ -408,12 +404,13 @@ datos_train_limpio %>%
   group_by(price_categ1) %>% 
   summarise(Count = n())%>% 
   mutate(percent = prop.table(Count)*100)%>%
-  ggplot(aes(reorder(price_categ1, - percent), percent), fill = price_categ1)+
-  geom_col(fill = c("red", "blue"))+
+  ggplot(aes(reorder(price_categ1, - percent), percent), fill = price_categ1) +
+  geom_col(fill = c("red", "blue")) +
   xlab("Precio de las casas") + 
-  ylab("Percent")+
-  ggtitle("% de las casas por precio")
-
+  ylab("Porcentaje") +
+  ggtitle("Porcentaje de casas por precio") +
+  theme(plot.title = element_text(hjust = 0.5)) 
+ 
 ```
 
 En cuanto a la relación de las variables que hacen referencia a las características de las casas con la variable respuesta categorizada, se observa lo siguiente:
@@ -421,8 +418,7 @@ En cuanto a la relación de las variables que hacen referencia a las caracterís
 ```{r, fig.align='center', warning=FALSE}
 
 p1<-ggplot(data = datos_train_limpio)+
-  geom_bar(aes(x=bedrooms,fill=price_categ1,bins=30, position = "identity"))+
-  facet_grid(price_categ1~., scales = 'free') 
+  geom_bar(aes(x=bedrooms,fill=price_categ1,bins=30, position = "identity")) 
 p2<-ggplot(data=datos_train_limpio)+
   geom_bar(aes(x=bathrooms_group,fill = price_categ1))
 p3<-ggplot(data=datos_train_limpio)+
@@ -446,38 +442,60 @@ p8<-ggplot(data = datos_train_limpio) + geom_bar(aes(x=grade_categ,fill=price_ca
 p9<-ggplot(data = datos_train_limpio) + geom_bar(aes(x=yr_renovated_catg,fill=price_categ1, stat="count"))
 p10<-ggplot(data = datos_train_limpio) + geom_bar(aes(x=zona,fill=price_categ1,bins=30, position = "identity"))
 
-grid.arrange(p5,p6,p7,p8,p9,p10, nrow = 4)
+grid.arrange(p5,p6,p7,p8,p9,p10, nrow = 3)
 
 ```
 
+
+# Análisis de componentes principales: PCA
+
+Es un método que permite simplificar la complejidad de espacios muestrales con muchas dimensiones conservando la mayor cantidad de información posible.
+
+```{r}
+pca<-prcomp(datos_train_numeric,scale=T)
+plot(pca, main = 'Análisis de componentes principales', xlab= 'Componente')
+
+```
+
+```{r}
+summary(pca)
+pca$rotation
+```
+
+
+```{r}
+biplot(x = pca, scale = 0, cex = 0.6, col = c("blue4", "brown3"))
+```
+
+Se observa, como la componente 1 (PC1) está diferenciando **lat** (-0.1) frente a long (0.41), log_lot (0.46), log_sqft_living (0.58) y bedrooms (0.51). La componente 2 (PC2) por otro lado estaría capturando la diferencia entre **long** y **log_lot**, frente a lat, log_sqft_livingy bedrooms. Estas conclusiones se extraen de los pesos que cada autovector da a cada variable.
+
+
 # Métodos de agrupamiento-No supervisado
 
-A continuación, se implementan dos métodos de agrupamiento no supervisado. Primero, un método jerárquico para averiguar (si es posible) la cantidad adecuada de clústers y, a continuación, K-Means y K-Medoids.
+A continuación, se implementan tres métodos de agrupamiento no supervisado. Primero, un método jerárquico para averiguar (si es posible) la cantidad adecuada de clústers y, a continuación, K-Means y K-Medoids. La agrupación es una técnica para agrupar puntos de datos similares en un grupo y separar las diferentes observaciones en diferentes grupos, de forma que un mismo cluster agrupe casas con características homogéneas que se diferencien en cierta medida del resto de clústers.
 
 ## Clúster Jerárquico
 
-La agrupación es una técnica para agrupar puntos de datos similares en un grupo y separar las diferentes observaciones en diferentes grupos. En el Clustering Jerárquico los clústers se crean de manera que tengan un orden predeterminado. En nuestro estudio se va a aplicar un **método aglomerativo** que consiste en que cada observación se asigna a su propio clúster. Luego, se calcula la similitud (o distancia) entre cada uno de los clústers y los dos clústers más similares se fusionan en uno. Finalmente, los pasos 2 y 3 se repiten hasta que solo quede un grupo.
+En el Clustering Jerárquico los clústers se crean de manera que tengan un orden predeterminado. En nuestro estudio se va a aplicar un **método aglomerativo** que consiste en que cada observación se asigna a su propio clúster. Luego, se calcula la similitud (o distancia) entre cada uno de los clústers y los dos clústers más similares se fusionan en uno. Finalmente, los pasos 2 y 3 se repiten hasta que solo quede un grupo.
 
 Aplicando este método a nuestros datos queremos observar si siguen algún patrón para poder agrupar las casas.
 
-### Train
-
-Escalamos las variables numéricas, es decir, cada variable ahora tendrá una media cero y una desviación estándar uno. También se requieren los valores de distancia. La medida predeterminada para la función dist es ‘Euclidiana’.  
+Escalamos las variables numéricas, es decir, cada variable ahora tendrá una media cero y una desviación estándar uno. Por otro lado, se halla la matriz de distancias mediante la función dist que usa por defecto la ‘Euclidea’.  
 
 ```{r}
 datos_scale<- as.data.frame(scale(datos_train_numeric))
-
 matriz_dist=dist(datos_scale)
 
 ```
 
-En este caso particular, estimamos dos clústers:
+En este caso particular, probamos con dos clústers dado que la categorización del precio se hace en base a dos clases (caras y baratas):
 
 ```{r}
 
+set.seed(1234)
 modelo_hc= hclust(matriz_dist, method = "average")
-plot(modelo_hc)
-rect.hclust(modelo_hc, k=2,border="red")
+plot(modelo_hc, sub='')
+rect.hclust(modelo_hc, k=2, border="red")
 
 ```
 
@@ -490,12 +508,11 @@ table(datos_train_limpio$price_categ1, grupos2)
 
 ```
 
+Se concluye que la agrupación en dos clases está muy descompensada, obteniendo un total de 15.109 casas en el grupo 1 y 10 en el grupo 2. Dados estos resultados, se decide que no es un método adecuado para los datos con los que contamos y por tanto, no se evaluan los conjuntos de test y validación.
 
 ## Clúster no Jerárquico- K-Means
 
 El método de **K-Means** basa su funcionamiento en agrupar los datos de entrada en un total de k conjuntos definidos por un centroide, cuya distancia con los puntos que pertenecen a cada uno de los datos sea la menor posible. 
-
-### Train
 
 Primero se van a realizar los gráficos para ver cómo están diferenciadas las casas por precio. Para poder visualizarlo en dos dimensiones se ha usado la función **"prcomp"** (PCA)
 
@@ -529,8 +546,38 @@ text(prcomp(datos_train_numeric, scale = T)$x[,1:2], as.character(model_km$clust
 
 ```
 
+A continuación, para visualizar si el agrupamiento que se ha llevado a cabo está relacionado con el precio de las casas (**Caras**, **Baratas**), se representa en el mapa que se muestra a continuación.
 
-#### Cálculo del k-óptimo.
+```{r}
+
+clusterkmeans=as.data.frame(model_km$cluster)
+clusterkmeans$indice= as.integer(rownames(clusterkmeans))
+
+colnames(clusterkmeans)[1]= "categoria_price_km"
+clustering1= clusterkmeans[order(clusterkmeans$indice),]
+
+
+center_lon = median(datos_train_limpio$long,na.rm = TRUE)
+center_lat = median(datos_train_limpio$lat,na.rm = TRUE)
+
+factpal1 <- colorFactor(c("green","red"),
+                       clustering1$categoria_price_km )
+
+leaflet(datos_train_limpio) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
+  addCircles(lng = ~long, lat = ~lat,
+             color = ~factpal1(clustering1$categoria_price_km))  %>%
+  # controls
+  setView(lng=center_lon, lat=center_lat,zoom = 9) %>%
+
+  addLegend("bottomright", pal = factpal1 , values = ~clustering1$categoria_price_km,
+            title = "Tipos de casas",
+            opacity = 1)
+
+```
+
+Comparando el mapa con el de los datos iniciales, dista bastante. Por lo que deducimos que la agrupación que está realizando K-Means con $k=2$ no sigue ningún patrón. Como ya se suponía, la naturaleza de los datos no permiten una agrupación de los mismos, por ejemplo, una casa cara puede tener el mismo número de pies cuadrado que una barata, que esté situada en otro barrio
+
+### Cálculo del k-óptimo.
 
 Se va a determinar la cantidad óptima de centroides a utilizar a partir del Método del Codo. Para ello, aplicaremos la función kmeans al conjunto de datos, variando en cada caso el valor de k y acumulando los valores de WCSS (Within-Cluster-Sum-of-Squares) obtenidos:
 
@@ -553,45 +600,14 @@ ggplot() + geom_point(aes(x = 1:20, y = wcss), color = 'blue') +
 ```
 
 
-Como se observa en la gráfica, el K-óptimo que se podría aplicar sería de 10.
+Como se observa en la gráfica, el K-óptimo que se podría aplicar sería de 10. Después de volver a implementar el modelo con $k=10$, se concluye que sigue sin haber un patrón que permita agrupas las casas en función de sus características.
 
-A continuación, para visualizar si el agrupamiento que se ha llevado a cabo está relacionado con el precio de las casas (**Caras**, **Baratas**), se representa en el mapa que se muestra a continuación.
-
-
-```{r}
-
-clusterkmeans=as.data.frame(model_km$cluster)
-clusterkmeans$indice= as.integer(rownames(clusterkmeans))
-
-colnames(clusterkmeans)[1]= "categoria_price_km"
-clustering1= clusterkmeans[order(clusterkmeans$indice),]
-
-
-center_lon = median(datos_train_limpio$long,na.rm = TRUE)
-center_lat = median(datos_train_limpio$lat,na.rm = TRUE)
-
-factpal1 <- colorFactor(c("green","red"),
-                       clustering1$categoria_price_km )
-
-leaflet(datos_train_limpio) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
-  addCircles(lng = ~long, lat = ~lat,
-             color = ~factpal1(clustering1$categoria_price_km))  %>%
-  # controls
-  setView(lng=center_lon, lat=center_lat,zoom = 12) %>%
-
-  addLegend("bottomright", pal = factpal1 , values = ~clustering1$categoria_price_km,
-            title = "Tipos de casas",
-            opacity = 1)
-
-```
-
-Comparando el mapa con el de los datos iniciales, dista bastante. Por lo que deducimos que la agrupación que está realizando K-Means no es muy buena.
 
 ## K-Medoids
 
-K-medoids es un método de clustering muy similar a K-means en cuanto a que ambos agrupan las observaciones en K clusters, donde K es un valor preestablecido. La diferencia es que, en K-medoids, cada clúster está representado por una observación presente en el clúster (medoid). En nuestro estudio será una observación de una casa, mientras que en K-means cada clúster está representado por su centroide, que se corresponde con el promedio de todas las observaciones del clúster pero con ninguna casa en particular.
+K-medoids es un método de clustering muy similar a K-means en cuanto a que ambos agrupan las observaciones en K clústers, donde K es un valor preestablecido. La diferencia es que, en K-medoids, cada clúster está representado por una observación presente en el clúster (medoid). En nuestro estudio será una observación de una casa, mientras que en K-means cada clúster está representado por su centroide, que se corresponde con el promedio de todas las observaciones del clúster pero con ninguna casa en particular.
 
-Este algoritmo es menos sensible al ruido y los valores atípicos, en comparación con k-means, porque usa medoides como centros de clúster en lugar de centroides. (utilizados en k-means).
+Este algoritmo es menos sensible al ruido y a los valores atípicos en comparación con k-means, porque usa medoides como centros de clúster en lugar de centroides (utilizados en k-means).
 
 
 ```{r}
@@ -602,13 +618,8 @@ model_medoids$medoids
 
 ```
 
-```{r}
-grupos<-data.frame(datoskmedoids)
-grupos<-cbind(grupos,data.frame(model_medoids$clustering))
-grupos$model_medoids.clustering<-as.factor(grupos$model_medoids.clustering)
-ggpairs(grupos,columns=c(1,2,3,15,12),mapping=aes(color=model_medoids.clustering))
-table(grupos$model_medoids.clustering)
-```
+
+Una vez más se representa el mapa para comprobar los resultados de la agrupación y pese a que los medoids aparecían separados, la clasificación es muy heterogénea y no se corresponde con la categorización del precio, por tanto se descarta este modelo.
 
 ```{r}
 
@@ -629,7 +640,7 @@ leaflet(datoskmedoids) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
   addCircles(lng = ~long, lat = ~lat,
              color = ~factpal2(clustering2$categoria_price))  %>%
   # controls
-  setView(lng=center_lon, lat=center_lat,zoom = 12) %>%
+  setView(lng=center_lon, lat=center_lat,zoom = 9) %>%
 
   addLegend("bottomright", pal = factpal2 , values = ~clustering2$categoria_price,
             title = "Tipos de casas",
@@ -638,22 +649,6 @@ leaflet(datoskmedoids) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
 ```
 
 
-# Técnicas de reducción de la dimensionalidad
-
-## PCA
-
-Es un método que permite simplificar la complejidad de espacios muestrales con muchas dimensiones a la vez que conserva su información.
-
-```{r}
-pca<-prcomp(datos_train_numeric,scale=T)
-plot(pca)
-
-```
-
-```{r}
-summary(pca)
-biplot(x = pca, scale = 0, cex = 0.6, col = c("blue4", "brown3"))
-```
 
 # Aprendizaje supervisado 
 
@@ -664,9 +659,11 @@ Con este modelo se va a estudiar si existe relación entre el hecho de que una c
 
 ### Train
 
+Inicialmente, se probó con todas las variables y después de implementar y evaluar varios modelos, se concluyó que las variables condition y grade_categ no eran importantes, por tanto se eliminaron para este modelo.
+
 ```{r}
 
-datos_train_rl <- datos_train_limpio[,-c(8,9)] # quitamos condition y grade_categ (no aportan **)
+datos_train_rl <- datos_train_limpio[,-c(8,9)]
 datos_train_rl$price_categ1<- recode(datos_train_rl$price_categ1, "'B1'=0; 'C1'=1")
 
 ```
@@ -674,11 +671,13 @@ datos_train_rl$price_categ1<- recode(datos_train_rl$price_categ1, "'B1'=0; 'C1'=
 
 ```{r}
 
+set.seed(1234)
 model_glm = glm(price_categ1 ~., family = binomial, data =datos_train_rl )
 summary(model_glm)
 
 ```
 
+La métrica que se ha considerado para evaluar los modelos es la F1-medida, por un lado para las casas caras, y por otro, para las baratas. Después se realiza la media: $\frac{\text{F1-medida}_{caras} + \text{F1-medida}_{baratas}}{2}$
 
 ```{r}
 
@@ -710,19 +709,22 @@ cat(c('Accuracy: ', accuracy_reglog_train), '\n')
 
 ```
 
+
+El resultado de la F1-medida para el modelo GLM considerando las variables: bedrooms, bathrooms_group, log_sqft_living, log_lot, sqft_basement_cat, waterfront, view, lat, lon y zona, es de 0.87, y lo mismo para la accuracy. Este modelo, al ser supervisado, mejora bastante la clasificación de las casas en función de sus características.
+
 ## KNN
 
 ### Train
 
-#### Ajuste de Hiperparámetros.
+- Ajuste de Hiperparámetros.
 
-Hemos usado tres métodos para ajustar y comparar este modelo (parámetro k):
+Este método se basa en clasificar cada dato en un grupo en función de sus k vecinos más cercanos. Para ello se usa la distancia de cada nuevo punto a los ya existentes. Para ajustar y comparar este modelo, se han usado tres métodos:
 
 1. Usando **train.kknn**.
 2. Usando **tune**.
 3. Usando diferentes k de 1 a 50 y comprobando los resultados de la F1-medida.
 
-En primer lugar con la función **train.kknn** se obtiene de manera automática el mejor valor de k hasta un máximo de k=30.
+En primer lugar con la función **train.kknn** se obtiene de manera automática el mejor valor de k hasta un máximo de $k=30$.
 
 ```{r}
 set.seed(1234)
@@ -733,16 +735,16 @@ knn_1
 
 ```
 
-En segundo lugar se usa la función **tune** que itera hasta k = 30 y muestra el error y la dispersión para cada valor de k.
+En segundo lugar se usa la función **tune** que itera hasta $k=30$ y muestra el error y la dispersión para cada valor de k.
 
 ```{r}
 set.seed(1234)
 
 knn_2 <- tune.knn(x=scale(datos_train_numeric),
-                  y=as.factor(datos_train_limpio$price_categ1), k = 1:30,
+                  y=as.factor(datos_train_limpio$price_categ1), k = 1:20,
                   tunecontrol = tune.control(sampling = "boot"))
 summary(knn_2)
-plot(knn_2, main="Mejor k según tune")
+plot(knn_2, main = "Mejor k según tune")
 
 ```
 
@@ -757,8 +759,8 @@ rango=1:k_maximo
 f1_modelos=c()
 
 for (i in rango){
-  model_knn=knn.cv(scale(datos_train_numeric),cl=as.factor(datos_train_limpio$price_categ1),k=i)
-  tabla=table(datos_train_limpio$price_categ1,model_knn)
+  knn_3=knn.cv(scale(datos_train_numeric),cl=as.factor(datos_train_limpio$price_categ1),k=i)
+  tabla=table(datos_train_limpio$price_categ1,knn_3)
   # f1 casas caras
   pred_means_caras=tabla[2,2]/(tabla[2,2]+tabla[1,2])
   rec_means_caras=tabla[2,2]/(tabla[2,2]+tabla[2,1])
@@ -797,7 +799,7 @@ leaflet(datos_train_limpio) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
   addCircles(lng = ~long, lat = ~lat,
              color = ~factpal1(model_knn))  %>%
   # controls
-  setView(lng=center_lon, lat=center_lat,zoom = 12) %>%
+  setView(lng=center_lon, lat=center_lat,zoom = 9) %>%
 
   addLegend("bottomright", pal = factpal1 , values = ~model_knn,
             title = "Precio (en miles de $)",
