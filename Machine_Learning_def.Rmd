@@ -84,7 +84,7 @@ En nuestro estudio inicial, la variable **"Precio"** es continua, por lo que vam
   + **B1**: casas baratas (casas con un precio < 500.000).
   + **C1**: casas caras (casas con un precio > 500.000).
 
-- **Categorización 2**: se ha categorizado en tres grupos:
+-  **Categorización 2**: se ha categorizado en tres grupos:
 
   + **B2**: casas baratas (casas con un precio < 330.000).
   + **M2**: casas con precio medio  (330.000 < precio < 650.000).
@@ -405,7 +405,7 @@ datos_train_limpio %>%
   summarise(Count = n())%>% 
   mutate(percent = prop.table(Count)*100)%>%
   ggplot(aes(reorder(price_categ1, - percent), percent), fill = price_categ1) +
-  geom_col(fill = c("red", "blue")) +
+  geom_col(fill = c("salmon", "cyan3"), size = 0.5) +
   xlab("Precio de las casas") + 
   ylab("Porcentaje") +
   ggtitle("Porcentaje de casas por precio") +
@@ -724,18 +724,18 @@ Este método se basa en clasificar cada dato en un grupo en función de sus k ve
 2. Usando **tune**.
 3. Usando diferentes k de 1 a 50 y comprobando los resultados de la F1-medida.
 
-En primer lugar con la función **train.kknn** se obtiene de manera automática el mejor valor de k hasta un máximo de $k=30$.
+En primer lugar con la función **train.kknn** se obtiene de manera automática el mejor valor de k hasta un máximo de $k=20$.
 
 ```{r}
 set.seed(1234)
 
 suppressWarnings(suppressMessages(library(kknn)))
-knn_1 <- train.kknn(price_categ1 ~ ., data = datos_train_limpio, kmax = 30)
+knn_1 <- train.kknn(price_categ1 ~ ., data = datos_train_limpio, kmax = 20)
 knn_1
 
 ```
 
-En segundo lugar se usa la función **tune** que itera hasta $k=30$ y muestra el error y la dispersión para cada valor de k.
+En segundo lugar se usa la función **tune** que itera hasta $k=20$ y muestra el error y la dispersión para cada valor de k.
 
 ```{r}
 set.seed(1234)
@@ -779,7 +779,7 @@ cat(c('Valor óptimo de k: ', which.max(f1_modelos)))
 
 ```
 
-De la primer forma obtenemos un valor óptimo de $k=15$, del segundo modo $k=27$, y de la forma manual, concluimos que el mejor valor de k en función de la F1-medida es de $k=17$. Finalmente, elegimos el valor de $k=17$, implementamos el modelo y lo evaluamos.
+De la primer forma obtenemos un valor óptimo de $k=15$, del segundo modo a partir de aproximadamente $k=15$ el error es muy pequeño, y de la forma manual, concluimos que el mejor valor de k en función de la F1-medida es de $k=17$. Finalmente, elegimos el valor de $k=17$, implementamos el modelo y lo evaluamos.
 
 ```{r}
 
@@ -799,7 +799,7 @@ leaflet(datos_train_limpio) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
   addCircles(lng = ~long, lat = ~lat,
              color = ~factpal1(model_knn))  %>%
   # controls
-  setView(lng=center_lon, lat=center_lat,zoom = 9) %>%
+  setView(lng=center_lon, lat=center_lat, zoom = 9) %>%
 
   addLegend("bottomright", pal = factpal1 , values = ~model_knn,
             title = "Precio (en miles de $)",
@@ -829,6 +829,8 @@ accuracy_knn_train= (tabla_knn_train[1,1]+tabla_knn_train[2,2]) / (tabla_knn_tra
 cat(c('Accuracy: ', accuracy_knn_train), '\n')
 
 ```
+
+Como los valores de k óptimos son muy parecidos entre las diferentes técnicas usadas para determinar este parámetro, se elige $k=17$, con los que se obtiene una F1-medida y accuracy de 0.88.
 
 ### Test
 
@@ -882,7 +884,13 @@ cat(c('Accuracy: ', accuracy_knn_validacion), '\n')
 
 ## Decision Trees
 
+Los árboles de decisión son un método usado en distintas disciplinas como modelo de predicción. Este método es similar a diagramas de flujo, en los que llegamos a puntos donde se toman decisiones de acuerdo a una regla. De manera general, lo que hace este algoritmo es encontrar la variable independiente que mejor separa nuestros datos en grupos, que corresponden con las categorías de la variable objetivo, en nuestro caso casas caras frente a baratas.
+
 ### Train
+
+Como en este modelo se toman decisiones en base a puntos de corte en las diferentes variables, se ha decidido eliminar la latitud y longitud dado que ya tenemos una variable **zona** que aporta esta misma información. 
+
+El parámetro **cp** (parámetro de complejidad) da una idea de lo que se penaliza añadir una nueva rama en el modelo, un cp más pequeño implica que el tamaño del árbol sea más reducido y viceversa. Cualquier división que no mejore este parámetro se eliminará mediante validación cruzada. El parámetro **minbucket** indica el número de casas que tienen que quedar en cualquier nodo terminal del árbol. Por último, **maxdeph** indica la profundidad del árbol, o número máximo de capas, contando la raiz como profundidad = 0.
 
 ```{r}
 
@@ -894,11 +902,15 @@ decisiontree_model=rpart(price_categ1~.,
                          data=datos_decision_tree, 
                          parms=list(split="gini"),
                          control = rpart.control(cp = 0.005, maxdepth = 5, minbucket = 400))
+
 # print(decisiontree_model)
 
 fancyRpartPlot(decisiontree_model, caption='')
 
 ```
+
+
+El árbol obtenido con los parámetros indicados considera que las variables zona y log_sqft_living son las más importantes para realizar la clasificación. A continuación, se evalúa este modelo y el resultado para la F1-medida y accuracy es de 0.84.
 
 ```{r}
 
@@ -977,7 +989,12 @@ cat(c('Accuracy: ', F_dt_validacion), '\n')
 
 ## Random Forest
 
+Los Random forests son una combinación de árboles predictores tal que cada árbol depende de los valores de un vector aleatorio probado independientemente y con la misma distribución para cada uno de estos. Es una modificación sustancial de bagging que construye una larga colección de árboles no correlacionados y luego los promedia.
+
 ### Train
+
+La implementación de este modelo se realiza mediante la función **randomForest**, y los parámetros de esta función son: **ntree** que indica el número de árboles que se van a considerar; **importance** que indica si se considerará la importancia de los predictores; **proximity** que indica si se calculará o no la proximidad entre las filas (vectores de características de las casas); **mtry** para indicar el número de variables que serán seleccionadas aleatoriamente en cada división; y **replace** para indicar si las muestras serán tomadas con o sin reemplazamiento.
+
 
 ```{r}
 set.seed(1234)
@@ -992,6 +1009,8 @@ randomforest_model=randomForest(price_categ1~.,
 print(randomforest_model)
 
 ```
+
+Después de implementar el modelo, se evalua, obteniendo una F1-medida y accuracy de 0.9, el mejor resultado obtenido hasta el momento.
 
 ```{r}
 
@@ -1068,18 +1087,56 @@ cat(c('Accuracy: ', accuracy_rf_validacion), '\n')
 
 ## SVM
 
+Una máquina de vectores de soporte (SVM) es un algoritmo de aprendizaje supervisado. Este algoritmo construye un hiperplano óptimo en forma de superficie de decisión, de modo que el margen de separación entre las dos clases en los datos sea lo más amplia posible. Los vectores de soporte hacen referencia a un pequeño subconjunto de las observaciones de entrenamiento que se utilizan como soporte para la ubicación óptima de la superficie de decisión.
+
+La función **svm** de la librería **e1071**, toma como parámatros el kernel a emplear (en nuestro caso se usa un kernel lineal, **linear**), el coste (**cost**) para ajustar el número de vectores soporte y **probility** para indicar si el modelo debe permitir predicciones de probabilidad.
+
+
+
+- Ajuste de hiperparámetros para el SVM
+
+```{r}
+
+# set.seed(1234)
+# svm_cv <- tune("svm", price_categ1 ~., data = datos_train_limpio, kernel = 'radial', 
+#                ranges = list(cost = c(0.01, 1, 10), gamma = c(0.5, 2, 4)))
+
+# svm_cv <- load("svm_cv.Rdata")
+# svm_cv$datos_test
+
+```
+
+
+
 ```{r}
 set.seed(1234)
-modelo_svm <- e1071::svm(formula = price_categ1 ~., 
+modelo_svm <- e1071::svm(formula = price_categ1 ~ log_sqft_living + zona, 
                          data = datos_train_limpio, 
-                         kernel = "linear", 
+                         kernel = "radial",
                          probability =TRUE,
-                         cost=1)
+                         # fijo cost a 0.01 - con 0.01: 11160 | con 0.5: 5900 | con 0.8: 5820 | con 1: 5816 | con 2: 5879
+                         gamma = 0.5,
+                         # fijo gamma a 1 - con cost 0.01: 5816 | con cost 1: 4868 | con cost 8: 4849 | con cost 100: 4790
+                         cost = 1)
 summary(modelo_svm)
 
 ```
 
 
+
+
+
+
+```{r}
+
+plot(modelo_svm, 
+     datos_train_limpio, 
+     formula = log_sqft_living~bedrooms)
+
+```
+
+
+Por último, se evalúa el resultado del modelo, obteniendo una F1-medida y accuracy de 0.87.
 
 ### Train
 
@@ -1157,19 +1214,12 @@ cat(c('Accuracy: ', accuracy_svm_validacion), '\n')
 ```
 
 
-### Ajuste de hiperparámetros
 
-```{r}
-
-svm_tune <- tune(svm, price_categ1 ~., data = datos_train_limpio, ranges = list(cost = 2^(2:4)), tunecontrol = tune.control(sampling = "fix"))
-summary(svm_tune)
-plot(svm_tune)
-
-```
-
-Pese a que el ajuste de hiperparámetros indica que el valor óptimo de cost es 8, repetimos los cálculos y la F1-global mejora muy poco (aprox. 0.0004). Pasamos de una F1 de 0.8686 a una F1 de 0.8690.
+Pese a que el ajuste de hiperparámetros indica que el valor óptimo de cost es 8, repetimos los cálculos y la F1-global mejora muy poco (aprox. 0.0004). Pasamos de una F1-medida de 0.8686 a una F1-medida de 0.8690.
 
 # GAM
+
+Los modelos GAM (Modelos Aditivos Generalizados) son una extensión de los modelos lineales que permiten obtener ajustes no lineales empleando múltiples predictores
 
 ### Train
 
@@ -1185,10 +1235,8 @@ summary(model_gam)
 plot(model_gam, ylab = "price")
 
 
-
 par(mfrow=c(3,3))
 visreg(model_gam)
-
 
 ```
 
@@ -1228,54 +1276,79 @@ Una vez que se han entrenado y optimizado distintos modelos, se tiene que identi
 
 models_cross = data.frame(
 "modelo"= c('GLM','knn','Decision_Tree','Random_Forest','SVM'),
- "F_Medida_train" = c(F_reglog_train,F_knn_train,F_dt_train,F_rf_train,F_svm_train))
-plot(x = models_cross$modelo, y= models_cross$F_Medida_train,fill=models_cross$modelo)
-
+"F_Medida_train" = c(F_reglog_train,F_knn_train,F_dt_train,F_rf_train,F_svm_train),
+"F_Medida_test" = c(NA,F_knn_test,F_dt_test,F_rf_test,F_svm_test),
+"F_Medida_validacion" = c(NA,F_knn_validacion,F_dt_validacion,F_rf_validacion,F_svm_validacion))
+models_cross
 
 ggplot(data=models_cross, aes(x=modelo, y=F_Medida_train, fill=modelo)) + 
-    geom_bar(stat="identity", position="dodge")
+    geom_bar(stat="identity", position="dodge") +
+    ylim (0, 1)
+
 
 ```
 
+El mejor modelo según la métrica de evaluación considerada (F1-medida para las casas caras y las baratas) es el Random Forest y el peor el Decision Tree, si bien es cierto que todos ellos obtienen un resultado aceptable, entre 0.84 y 0.9.
 
 # Curva ROC
 
 ```{r}
+set.seed(1234)
 
 # REGRESIÓN LOGÍSTICA
 predictions_glm <- predict(model_glm, newdata = datos_train_rl, type = "response")
 pred_glm <- prediction(predictions_glm, datos_train_rl$price_categ1)
-perf_glm <- performance(pred_glm,"tpr","fpr")
+perf_glm <- performance(pred_glm,"sens","spec")
+
+alpha_glm <- data.frame(perf_glm@alpha.values)
+x_val_glm <- data.frame(perf_glm@x.values)
+best_alpha_glm <- alpha_glm[(0.6<x_val_glm[,1] & x_val_glm[,1]<0.6001),]
+
 
 # KNN
 # model_knn=knn.cv(scale(datos_train_numeric),cl=as.factor(datos_train_limpio$price_categ1),k=17, prob = TRUE)
-predictions_Knn <- knn(scale(datos_train_numeric), scale(datos_train_numeric), cl=datos_train_limpio$price_categ1, k=17, prob = TRUE)
+predictions_Knn <- knn(scale(datos_train_numeric), 
+                       scale(datos_train_numeric), 
+                       cl=datos_train_limpio$price_categ1, k=17, prob = TRUE)
 pred_knn <- prediction(attr(predictions_Knn,"prob"), datos_train_limpio$price_categ1)
-perf_knn <- performance(pred_knn,"tpr","fpr")
+perf_knn <- performance(pred_knn,"sens","spec")
+
+alpha_knn <- data.frame(perf_knn@alpha.values)
+x_val_knn <- data.frame(perf_knn@x.values)
+best_alpha_knn <- alpha_knn[(0.6<x_val_knn[,1] & x_val_knn[,1]<0.6001),]
 
 # ARBOL DE DECISION
 predictions_tree <- predict(decisiontree_model, newdata = datos_decision_tree, type = "prob")
 pred_tree = prediction(predictions_tree[,2], datos_decision_tree$price_categ1)
-pref_tree = performance(pred_tree, "tpr", "fpr")
+perf_tree = performance(pred_tree,"sens","spec")
+
+alpha_tree <- data.frame(perf_tree@alpha.values)
+x_val_tree <- data.frame(perf_tree@x.values)
+best_alpha_tree <- alpha_tree[(0.6<x_val_tree[,1] & x_val_tree[,1]<0.6001),]
 
 # RANDOM FOREST
 predictions_rf <- predict(randomforest_model, new_data=datos_train_limpio, type = "prob")
 pred_rf <- prediction(predictions_rf[,2],datos_train_limpio$price_categ1)
-perf_rf <- performance(pred_rf,"tpr","fpr")
+perf_rf <- performance(pred_rf,"sens","spec")
+
+alpha_rf <- data.frame(perf_rf@alpha.values)
+x_val_rf <- data.frame(perf_rf@x.values)
+best_alpha_rf <- alpha_rf[(0.6<x_val_rf[,1] & x_val_rf[,1]<0.6001),]
+
 
 # SVM
 predictions_svm <- predict(modelo_svm, newdata=datos_train_limpio, probability = TRUE)
 prob_svm<-attr(predictions_svm,"probabilities")
 pred_svm <- prediction(prob_svm[,2], datos_train_limpio$price_categ)
-perf_svm <- performance(pred_svm,"tpr","fpr")
+perf_svm <- performance(pred_svm,"sens","spec")
 
 
 plot(perf_glm,col="blue")
-plot(pref_tree, col="red",add = TRUE)
+plot(perf_tree, col="red",add = TRUE)
 plot(perf_rf,col="green", add = TRUE)
 plot(perf_svm, col="yellow",add = TRUE)
 plot(perf_knn, col="orange",add = TRUE)
-legend(x="right", legend=c("GLM","DT","RF","SVM","KNN"), fill=c("blue","red","green","yellow","orange"), cex=0.8)
+legend(x="left", legend=c("GLM","DT","RF","SVM","KNN"), fill=c("blue","red","green","yellow","orange"), cex=0.8)
 
 ```
 
@@ -1283,4 +1356,4 @@ legend(x="right", legend=c("GLM","DT","RF","SVM","KNN"), fill=c("blue","red","gr
 
 # Conclusiones
 
-* nos quedamos con la acuracy ya que es la única medida que tiene en cuenta los aciertos de las casas caras y de las baratas (la F_medida no tiene en cuenta los TN y la sensibilidad y especificidad solo tienen en cuenta que acierte las caras o las baratas pero no que acierte en ambas)
+Nos quedamos con la acuracy ya que es la única medida que tiene en cuenta los aciertos de las casas caras y de las baratas (la F_medida no tiene en cuenta los TN y la sensibilidad y especificidad solo tienen en cuenta que acierte las caras o las baratas pero no que acierte en ambas)
