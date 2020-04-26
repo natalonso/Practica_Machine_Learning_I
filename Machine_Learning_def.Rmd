@@ -1098,11 +1098,14 @@ La función **svm** de la librería **e1071**, toma como parámatros el kernel a
 ```{r}
 
 # set.seed(1234)
-# svm_cv <- tune("svm", price_categ1 ~., data = datos_train_limpio, kernel = 'radial', 
+# svm_tune <- tune("svm", price_categ1 ~., data = datos_train_limpio, kernel = 'radial', 
 #                ranges = list(cost = c(0.01, 1, 10), gamma = c(0.5, 2, 4)))
 
-# svm_cv <- load("svm_cv.Rdata")
-# svm_cv$datos_test
+load("svm_tune.Rdata")
+svm_tune <- svm_cv
+rm(svm_cv)
+best_cost <- svm_tune$best.parameters[1]
+best_gamma <- svm_tune$best.parameters[2]
 
 ```
 
@@ -1115,9 +1118,9 @@ modelo_svm <- e1071::svm(formula = price_categ1 ~ log_sqft_living + zona,
                          kernel = "radial",
                          probability =TRUE,
                          # fijo cost a 0.01 - con 0.01: 11160 | con 0.5: 5900 | con 0.8: 5820 | con 1: 5816 | con 2: 5879
-                         gamma = 0.5,
+                         gamma = best_gamma,
                          # fijo gamma a 1 - con cost 0.01: 5816 | con cost 1: 4868 | con cost 8: 4849 | con cost 100: 4790
-                         cost = 1)
+                         cost = best_cost)
 summary(modelo_svm)
 
 ```
