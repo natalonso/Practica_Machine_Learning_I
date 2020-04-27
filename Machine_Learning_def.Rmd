@@ -22,7 +22,7 @@ datos <- read.csv("kc_house_data.csv")
 ```
 
 
-```{r, setup, include=FALSE}
+```{r, setup, include=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(lattice)
 library(dplyr)
@@ -60,38 +60,45 @@ library(mgcv)
 library(StatMatch)
 library(visreg)
 library(ROCR)
-
+library(kknn)
 ```
 
 
 # Introducción
 
+<p style = "text-align: justify">
 Los datos que se van a analizar en este proyecto han sido obtenidos desde Kaggle. Contienen precios de casas que fueron vendidas desde mayo de 2014 hasta mayo de 2015 en **King County** que es un condado ubicado en el estado estadounidense de Washington. 
+</p>
 
 # Objetivo del estudio
 
+<p style = "text-align: justify">
 Lo que queremos hacer con estos datos es clasificar/predecir las viviendas conforme a su precio dependiendo de las variables recogidas de cada una. Para ello se implementarán varios modelos, comprobando cuáles de ellos funciona mejor con los tipos de variables que contamos. Finalmente se evaluarán los modelos en base a distintas métricas.
-
+</p>
 
 # Datos
 
 ## Categorización del precio
 
+<p style = "text-align: justify">
 En nuestro estudio inicial, la variable **"Precio"** es continua, por lo que vamos a categorizarla. Para decidir las categorizaciones se ha usado los cuantiles. Se van a realizar dos tipos de categorizaciones:
+</p>
+
+  - <p style = "text-align: justify">**Categorización 1**: se ha categorizado en dos grupos:</p>
+
+    + <p style = "text-align: justify">**B1**: casas baratas (casas con un precio < 500.000).</p>
+    + <p style = "text-align: justify">**C1**: casas caras (casas con un precio > 500.000).</p>
+
+  - <p style = "text-align: justify">**Categorización 2**: se ha categorizado en tres grupos:</p>
+
+    + <p style = "text-align: justify">**B2**: casas baratas (casas con un precio < 330.000).</p>
+    + <p style = "text-align: justify">**M2**: casas con precio medio  (330.000 < precio < 650.000).</p>
+    + <p style = "text-align: justify">**C2**: casas caras (precio > 650.000).</p>
 
 
-  -  **Categorización 1**: se ha categorizado en dos grupos:
-
-    + **B1**: casas baratas (casas con un precio < 500.000).
-    + **C1**: casas caras (casas con un precio > 500.000).
-
-  -  **Categorización 2**: se ha categorizado en tres grupos:
-
-    + **B2**: casas baratas (casas con un precio < 330.000).
-    + **M2**: casas con precio medio  (330.000 < precio < 650.000).
-    + **C2**: casas caras (precio > 650.000).
 
 ```{r}
+
 #Categorizamos la variable respuesta price:
 quantile(datos$price, prob=seq(0, 1, length = 5))
 datos$price_categ1 <- cut(datos$price, breaks = c(0, 500000, 100000000), labels = c("B1", "C1"))
@@ -102,8 +109,9 @@ table(datos$price_categ2)
 
 ```
 
-
+<p style = "text-align: justify">
 En el siguiente mapa se puede visualizar cómo se distribuyen las casas **"Caras"** y **"Baratas"**. Se observa que las casas que están cercanas al agua y cerca de Seattle por la parte norte son más caras y hacia el sur son más baratas.
+</p>
 
 ```{r, fig.align='center', warning=FALSE}
 
@@ -126,8 +134,9 @@ leaflet(datos) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
 ```
 
 
-
+<p style = "text-align: justify">
 En este otro mapa se puede visualizar cómo se distribuyen las casas según el precio en tres categorías:**"Caras"**, **"Medio"** y **"Baratas"**. Se puede observar cómo con esta categorización no está tan clara la separación entre clases.
+</p>
 
 ```{r, fig.align='center', warning=FALSE}
 
@@ -149,9 +158,13 @@ leaflet(datos) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
 
 ```
 
+<p style = "text-align: justify">
 Por lo tanto, viendo ambos mapas, nos quedamos con la primera categorización: casas *baratas* y *caras*.
+</p>
 
+<p style = "text-align: justify">
 Eliminamos la segunda categorización:
+</p>
 
 ```{r}
 
@@ -161,12 +174,13 @@ datos$price_categ2= NULL
 
 ## Train, test y validación
 
+<p style = "text-align: justify">
 Se va a separar los datos en los 3 conjuntos de datos fundamentales:  
+</p>
 
--  Conjunto de datos de **entrenamiento**: en nuestro estudio **datos_train**, se corresponde con el 70% del total de los datos.
--  Conjunto de datos de **test**: en nuestro estudio **datos_test**, se corresponde con el 15% del total de los datos.
--  Conjunto de datos de **validación**: en nuestro estudio **datos_validacion**, se corresponde con el 15% del total de los datos.
-
+-  <p style = "text-align: justify">Conjunto de datos de **entrenamiento**: en nuestro estudio **datos_train**, se corresponde con el 70% del total de los datos.</p>
+-  <p style = "text-align: justify">Conjunto de datos de **test**: en nuestro estudio **datos_test**, se corresponde con el 15% del total de los datos.</p>
+-  <p style = "text-align: justify">Conjunto de datos de **validación**: en nuestro estudio **datos_validacion**, se corresponde con el 15% del total de los datos.</p>
 
 ```{r, fig.align='center', warning=FALSE}
 
@@ -192,28 +206,32 @@ datos_validacion=datos[indices_validacion,]
 
 ## Análisis exploratorio
 
+<p style = "text-align: justify">
 Se van a realizar transformaciones de un conjunto de variables, estas transformaciones se aplicarán a cada conjunto de datos: train, test y validación.
+</p>
 
-  - Se realiza una transformación logarítmica sobre las variables **sqft_living** (pies cuadrados de la casa), **sqft_lot** (pies cuadrados del jardín) y **sqft_above** (pies cuadrados por encima del suelo). Hay que aclarar que esta última variable es la diferencia entre **sqft_living** y **sqft_basement**, por lo que va a estar altamentente correlada con sqft_living.
+  - <p style = "text-align: justify">Se realiza una transformación logarítmica sobre las variables **sqft_living** (pies cuadrados de la casa), **sqft_lot** (pies cuadrados del jardín) y **sqft_above** (pies cuadrados por encima del suelo). Hay que aclarar que esta última variable es la diferencia entre **sqft_living** y **sqft_basement**, por lo que va a estar altamentente correlada con sqft_living.</p>
 
-  - Se categorizan las variables:
-  
-    + **Bathroom**, esta varible puede tomar valores decimales de 0.25 en 0.25. El número de baños se contabiliza por las piezas y cada baño completo tiene 4 piezas. Por lo que con la nueva agrupación toma valores de 1 a 8 baños.
-  
-    + **Sqft_basement**, se categoriza como 0 las casas que no tienen sótano y 1 las casas que sí tienen sótano. 
-  
-    + **Grade**, se va a categorizar del siguiente modo: con valor 0: calidad Baja, 1: calidad media y 2: calidad alta.
+  - <p style = "text-align: justify">Se categorizan las variables:</p>
 
-    + **Year_renovated**, se categoriza como 0: no ha tenido renovación y 1: sí ha tenido renovación.
- 
-  - Se pasan a factor las variables: **waterfront**, **view**, **condition**, **grade_categ** y **zipcode**.
-  
-  - Se eliminan Outliers.
+    + <p style = "text-align: justify">**Bathroom**, esta varible puede tomar valores decimales de 0.25 en 0.25. El número de baños se contabiliza por las piezas y cada baño completo tiene 4 piezas. Por lo que con la nueva agrupación toma valores de 1 a 8 baños.</p>
+
+    + <p style = "text-align: justify">**Sqft_basement**, se categoriza como 0 las casas que no tienen sótano y 1 las casas que sí tienen sótano.</p>
+
+    + <p style = "text-align: justify">**Grade**, se va a categorizar del siguiente modo: con valor 0: calidad Baja, 1: calidad media y 2: calidad alta.</p>
+
+    + <p style = "text-align: justify">**Year_renovated**, se categoriza como 0: no ha tenido renovación y 1: sí ha tenido renovación.</p>
+
+  - <p style = "text-align: justify">Se pasan a factor las variables: **waterfront**, **view**, **condition**, **grade_categ** y **zipcode**.</p>
+
+  - <p style = "text-align: justify">Se eliminan Outliers.</p>
 
 
 ### Transformaciones datos Train
 
+<p style = "text-align: justify">
 Se realizan las transformaciones anteriormente mencionada y se eliminan outliers:
+</p>
 
 ```{r, fig.align='center', warning=FALSE}
 datos_train <- datos_train[,-2]
@@ -260,9 +278,12 @@ datos_train[datos_train$posicion == indice_hab33,]$bedrooms = 3
 
 - Transformaciones adicionales:
 
+<p style = "text-align: justify">
 Se han realizado dos categorizaciones adicionales sobre el conjunto de datos. Después de implementar varios modelos, se llegó a la conclusión de que algunas variables podían mejorar los resultados de los modelos siendo agrupadas. Para analizar cómo recategorizar estas variables se ha usado un árbol de decisión. Las variables son:  **zipcode** y **bathrooms_group**.
+</p>
 
-- **Zipcode**, esta variable es de tipo factor y tenía 70 códigos postales, por lo que se ha decidido aplicar un árbol de decisión para ver cómo clasificaba los códigos postales y así volver a categorizarla según el resultado obtenido.
+
+- <p style = "text-align: justify">**Zipcode**, esta variable es de tipo factor y tenía 70 códigos postales, por lo que se ha decidido aplicar un árbol de decisión para ver cómo clasificaba los códigos postales y así volver a categorizarla según el resultado obtenido.</p>
 
 ```{r}
 
@@ -271,7 +292,9 @@ print(model_selec_zipcode)
 
 ```
 
+<p style = "text-align: justify">
 Se va a categorizar en dos: Zona1 y Zona2.
+</p>
 
 ```{r}
 
@@ -281,8 +304,8 @@ datos_train$zipcode = NULL
 
 ```
 
-- **bathrooms_group**, se aplica el mismo método que con zipcode para ver cómo se puede categorizar esta variable. Toma valores de 1 a 8 y queremos reducir el número de niveles.
 
+- <p style = "text-align: justify">**bathrooms_group**, se aplica el mismo método que con zipcode para ver cómo se puede categorizar esta variable. Toma valores de 1 a 8 y queremos reducir el número de niveles.</p>
 
 ```{r}
 
@@ -291,7 +314,9 @@ print(model_selec_bathrooms)
 
 ```
 
+<p style = "text-align: justify">
 En el resultado del modelo se ve que corta en el número de baños < 2.5, por lo que se va a categorizar como 0 aquellas casas que tengan de 1 a 2 baños y como 1 las casas que tengan más de 2 baños.
+</p>
 
 ```{r}
 
@@ -312,7 +337,9 @@ datos_train_numeric <- datos_train_limpio %>% select_if(is.numeric)
 
 ### Transformaciones datos Test
 
+<p style = "text-align: justify">
 Realizamos todas las transformaciones y categorizaciones para el conjunto de datos de test.
+</p>
 
 ```{r, fig.align='center', warning=FALSE}
 
@@ -354,7 +381,9 @@ datos_test_numeric <- datos_test_limpio %>% select_if(is.numeric)
 
 ### Transformaciones datos Validación
 
+<p style = "text-align: justify">
 Realizamos todas las transformaciones y categorizaciones para el conjunto de datos de Validación.
+</p>
 
 ```{r, fig.align='center', warning=FALSE}
 
@@ -396,8 +425,9 @@ datos_validacion_numeric <- datos_validacion_limpio %>% select_if(is.numeric)
 
 ### Resumen EDA
 
+<p style = "text-align: justify">
 La distribución de las casas según la nueva categorización daría como resultado un 57,8% de casas baratas (B1) y un 42,23% de casas caras (C1):
-
+</p>
 
 ```{r}
 
@@ -414,7 +444,9 @@ datos_train_limpio %>%
  
 ```
 
+<p style = "text-align: justify">
 En cuanto a la relación de las variables que hacen referencia a las características de las casas con la variable respuesta categorizada, se observa lo siguiente:
+</p>
 
 ```{r, fig.align='center', warning=FALSE}
 
@@ -432,7 +464,9 @@ grid.arrange(p1, p2, p3, p4, nrow = 2)
 
 ```
 
+<p style = "text-align: justify">
 Por último, para la relación entre las variables que expresan la calidad de las casas y el precio, se obtienen los siguientes resultados:
+</p>
 
 ```{r, fig.align='center', warning=FALSE}
 
@@ -450,11 +484,16 @@ grid.arrange(p5,p6,p7,p8,p9,p10, nrow = 3)
 
 # Análisis de componentes principales: PCA
 
+<p style = "text-align: justify">
 Es un método que permite simplificar la complejidad de espacios muestrales con muchas dimensiones conservando la mayor cantidad de información posible.
+</p>
 
 ```{r}
-pca<-prcomp(datos_train_numeric,scale=T)
+
+datospca<-datos_train_numeric[c(1:3)]
+pca<-prcomp(datospca,scale=T)
 plot(pca, main = 'Análisis de componentes principales', xlab= 'Componente')
+
 
 ```
 
@@ -468,20 +507,29 @@ pca$rotation
 biplot(x = pca, scale = 0, cex = 0.6, col = c("blue4", "brown3"))
 ```
 
-Se observa, como la componente 1 (PC1) está diferenciando **lat** (-0.1) frente a long (0.41), log_lot (0.46), log_sqft_living (0.58) y bedrooms (0.51). La componente 2 (PC2) por otro lado estaría capturando la diferencia entre **long** y **log_lot**, frente a lat, log_sqft_livingy bedrooms. Estas conclusiones se extraen de los pesos que cada autovector da a cada variable.
-
+<p style = "text-align: justify">
+Se observa, como la componente 1 (PC1) está dando un peso de 0.41 a log_lot, un peso de 0.66 a log_sqft_living y un peso de 0.62 a bedrooms. La componente 2 (PC2) por otro lado estaría capturando la diferencia entre bedrooms (-0.42) y log_sqft_living (-0.16), frente a log_lot (0.89). Estas conclusiones se extraen de los pesos que cada autovector da a cada variable.
+</p>
 
 # Métodos de agrupamiento-No supervisado
 
+<p style = "text-align: justify">
 A continuación, se implementan tres métodos de agrupamiento no supervisado. Primero, un método jerárquico para averiguar (si es posible) la cantidad adecuada de clústers y, a continuación, K-Means y K-Medoids. La agrupación es una técnica para agrupar puntos de datos similares en un grupo y separar las diferentes observaciones en diferentes grupos, de forma que un mismo cluster agrupe casas con características homogéneas que se diferencien en cierta medida del resto de clústers.
+</p>
 
 ## Clúster Jerárquico
 
+<p style = "text-align: justify">
 En el Clustering Jerárquico los clústers se crean de manera que tengan un orden predeterminado. En nuestro estudio se va a aplicar un **método aglomerativo** que consiste en que cada observación se asigna a su propio clúster. Luego, se calcula la similitud (o distancia) entre cada uno de los clústers y los dos clústers más similares se fusionan en uno. Finalmente, los pasos 2 y 3 se repiten hasta que solo quede un grupo.
+</p>
 
+<p style = "text-align: justify">
 Aplicando este método a nuestros datos queremos observar si siguen algún patrón para poder agrupar las casas.
+</p>
 
+<p style = "text-align: justify">
 Escalamos las variables numéricas, es decir, cada variable ahora tendrá una media cero y una desviación estándar uno. Por otro lado, se halla la matriz de distancias mediante la función dist que usa por defecto la ‘Euclidea’.  
+</p>
 
 ```{r}
 datos_scale<- as.data.frame(scale(datos_train_numeric))
@@ -489,33 +537,52 @@ matriz_dist=dist(datos_scale)
 
 ```
 
+<p style = "text-align: justify">
 En este caso particular, probamos con dos clústers dado que la categorización del precio se hace en base a dos clases (caras y baratas):
+</p>
 
 ```{r}
 
 set.seed(1234)
-modelo_hc= hclust(matriz_dist, method = "average")
-plot(modelo_hc, sub='')
-rect.hclust(modelo_hc, k=2, border="red")
+modelo_hc1= hclust(matriz_dist, method = "average")
+plot(modelo_hc1, sub='')
+rect.hclust(modelo_hc1, k=2, border="red")
+
+set.seed(1234)
+modelo_hc2= hclust(matriz_dist, method = "average")
+plot(modelo_hc2, sub='')
+rect.hclust(modelo_hc2, k=10, border="red")
+
 
 ```
 
-A continuación vemos cómo se han agrupado los datos marcando que el número de clústers sea 2. Como se puede ver, prácticamente todas las casas están en el grupo 1.
+<p style = "text-align: justify">
+A continuación vemos cómo se han agrupado los datos marcando que el número de clústers sea 2. Como se puede ver, prácticamente todas las casas están en el grupo 1. Si se considera $k=10$, sucede lo mismo, se agrupan prácticamente el total de observaciones en el grupo 1 y prácticamente ninguna observación en el resto de grupos.
+</p>
 
 ```{r}
 
-grupos2=cutree(modelo_hc,k=2)
+grupos2=cutree(modelo_hc1,k=2)
 table(datos_train_limpio$price_categ1, grupos2)
+
+grupos10=cutree(modelo_hc2,k=10)
+table(datos_train_limpio$price_categ1, grupos10)
 
 ```
 
-Se concluye que la agrupación en dos clases está muy descompensada, obteniendo un total de 15.109 casas en el grupo 1 y 10 en el grupo 2. Dados estos resultados, se decide que no es un método adecuado para los datos con los que contamos y por tanto, no se evaluan los conjuntos de test y validación.
+<p style = "text-align: justify">
+Se concluye que la agrupación en dos clases está muy descompensada, obteniendo un total de 15.109 casas en el grupo 1 y 10 en el grupo 2 y lo mismo sucede con 10 grupos. Dados estos resultados, se decide que no es un método adecuado para los datos con los que contamos y por tanto, no se evaluan los conjuntos de test y validación.
+</p>
 
 ## Clúster no Jerárquico- K-Means
 
+<p style = "text-align: justify">
 El método de **K-Means** basa su funcionamiento en agrupar los datos de entrada en un total de k conjuntos definidos por un centroide, cuya distancia con los puntos que pertenecen a cada uno de los datos sea la menor posible. 
+</p>
 
-Primero se van a realizar los gráficos para ver cómo están diferenciadas las casas por precio. Para poder visualizarlo en dos dimensiones se ha usado la función **"prcomp"** (PCA)
+<p style = "text-align: justify">
+Primero se van a realizar los gráficos para ver cómo están diferenciadas las casas por precio. Para poder visualizarlo en dos dimensiones se ha usado la función **"prcomp"** (PCA).
+</p>
 
 ```{r}
 colores1= c("red","blue")
@@ -526,19 +593,22 @@ text(prcomp(datos_train_numeric, scale = T)$x[,1:2], as.character(datos_train_li
 
 ```
 
+<p style = "text-align: justify">
 A continuación se va a aplicar el método de agrupamiento K-means, al igual que en el método anterior se le pasa la matriz de distacias y se van a agrupar los datos en dos conjuntos:
+</p>
 
 ```{r}
-
 set.seed(1234)
 model_km <- kmeans(matriz_dist, centers=2)
-table(model_km$cluster) #asignación de observación a los cluster
 
 ```
 
-
+<p style = "text-align: justify">
+Se representa mediante PCA el resultado obtenido con $k=2$, y se observa como en ambos grupos ha incluido tanto casas caras como baratas.
+</p>
 
 ```{r}
+
 colores1= c("red","blue")
 colores11 = colores1[datos_train_limpio$price_categ1]
 
@@ -547,7 +617,48 @@ text(prcomp(datos_train_numeric, scale = T)$x[,1:2], as.character(model_km$clust
 
 ```
 
-A continuación, para visualizar si el agrupamiento que se ha llevado a cabo está relacionado con el precio de las casas (**Caras**, **Baratas**), se representa en el mapa que se muestra a continuación.
+- Cálculo del k-óptimo.
+
+<p style = "text-align: justify">
+Se va a determinar la cantidad óptima de centroides a utilizar a partir del Método del Codo. Para ello, aplicaremos la función kmeans al conjunto de datos, variando en cada caso el valor de k y acumulando los valores de WCSS (Within-Cluster-Sum-of-Squares) obtenidos:
+</p>
+
+```{r, warning=FALSE}
+
+set.seed(1234)
+wcss <- vector()
+for(i in 1:20){
+  wcss[i] <- sum(kmeans(datos_scale, i)$withinss)
+}
+
+ggplot() + geom_point(aes(x = 1:20, y = wcss), color = 'blue') + 
+  geom_line(aes(x = 1:20, y = wcss), color = 'blue') + 
+  ggtitle("Método del Codo") + 
+  xlab('Cantidad de Centroides k') + 
+  ylab('WCSS')
+
+
+```
+
+<p style = "text-align: justify">
+Como se observa en la gráfica, el K-óptimo que se podría aplicar sería de 10. Después de volver a implementar el modelo con $k=10$, se concluye que sigue sin haber un patrón que permita agrupar las casas en función de sus características.
+</p>
+
+<p style = "text-align: justify">
+Se comparan los datos obtenido con $k=2$ y con $k=10$:
+</p>
+
+```{r}
+load("model_km10.RData")
+table(model_km$cluster, datos_train_limpio$price_categ1) #asignación de observación a los cluster
+table(model_km10$cluster, datos_train_limpio$price_categ1)
+
+```
+
+
+<p style = "text-align: justify">
+A continuación, para visualizar si el agrupamiento que se ha llevado a cabo está relacionado con el precio de las casas (**Caras**, **Baratas**), se representa en el mapa (para el caso de $k=2$) que se muestra a continuación.
+</p>
 
 ```{r}
 
@@ -576,68 +687,59 @@ leaflet(datos_train_limpio) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
 
 ```
 
-Comparando el mapa con el de los datos iniciales, dista bastante. Por lo que deducimos que la agrupación que está realizando K-Means con $k=2$ no sigue ningún patrón. Como ya se suponía, la naturaleza de los datos no permiten una agrupación de los mismos, por ejemplo, una casa cara puede tener el mismo número de pies cuadrado que una barata, que esté situada en otro barrio
+<p style = "text-align: justify">
+Comparando el mapa con el de los datos iniciales, dista bastante. Por lo que deducimos que la agrupación que está realizando K-Means con $k=2$ y con $k=10$ no sigue ningún patrón. Como ya se suponía, la naturaleza de los datos no permiten una agrupación de los mismos, por ejemplo, una casa cara puede tener el mismo número de pies cuadrado que una barata, que esté situada en otro barrio.
+</p>
 
-### Cálculo del k-óptimo.
-
-Se va a determinar la cantidad óptima de centroides a utilizar a partir del Método del Codo. Para ello, aplicaremos la función kmeans al conjunto de datos, variando en cada caso el valor de k y acumulando los valores de WCSS (Within-Cluster-Sum-of-Squares) obtenidos:
-
-
-```{r, warning=FALSE}
-
-set.seed(1234)
-wcss <- vector()
-for(i in 1:20){
-  wcss[i] <- sum(kmeans(datos_scale, i)$withinss)
-}
-
-ggplot() + geom_point(aes(x = 1:20, y = wcss), color = 'blue') + 
-  geom_line(aes(x = 1:20, y = wcss), color = 'blue') + 
-  ggtitle("Método del Codo") + 
-  xlab('Cantidad de Centroides k') + 
-  ylab('WCSS')
-
-
-```
-
-
-Como se observa en la gráfica, el K-óptimo que se podría aplicar sería de 10. Después de volver a implementar el modelo con $k=10$, se concluye que sigue sin haber un patrón que permita agrupas las casas en función de sus características.
 
 
 ## K-Medoids
 
+<p style = "text-align: justify">
 K-medoids es un método de clustering muy similar a K-means en cuanto a que ambos agrupan las observaciones en K clústers, donde K es un valor preestablecido. La diferencia es que, en K-medoids, cada clúster está representado por una observación presente en el clúster (medoid). En nuestro estudio será una observación de una casa, mientras que en K-means cada clúster está representado por su centroide, que se corresponde con el promedio de todas las observaciones del clúster pero con ninguna casa en particular.
+</p>
 
+<p style = "text-align: justify">
 Este algoritmo es menos sensible al ruido y a los valores atípicos en comparación con k-means, porque usa medoides como centros de clúster en lugar de centroides (utilizados en k-means).
+</p>
+
+<p style = "text-align: justify">
+En primer lugar probamos con las variables (bedrooms, log_sqft_living, log_lot, lat, long y zona), y en segundo lugar incluimos todas las variables para comparar:
+</p>
 
 
 ```{r}
 
-datoskmedoids = datos_train_limpio[,-15]
-model_medoids = pam(x = datoskmedoids, k = 2, keep.diss = TRUE, keep.data = TRUE)
-model_medoids$medoids
+datoskmedoids1 = datos_train_limpio[,c(1,3,4,10:12)]
+model_medoids1 = pam(x = datoskmedoids1, k = 2, keep.diss = TRUE, keep.data = TRUE)
+model_medoids1$medoids
+
+datoskmedoids2 = datos_train_limpio[,-14]
+model_medoids2 = pam(x = datoskmedoids2, k = 2, keep.diss = TRUE, keep.data = TRUE)
+model_medoids2$medoids
 
 ```
 
-
+<p style = "text-align: justify">
 Una vez más se representa el mapa para comprobar los resultados de la agrupación y pese a que los medoids aparecían separados, la clasificación es muy heterogénea y no se corresponde con la categorización del precio, por tanto se descarta este modelo.
+</p>
 
 ```{r}
 
-clustering= sort(model_medoids$clustering)
-clustering=as.data.frame(model_medoids$clustering)
+clustering = sort(model_medoids1$clustering)
+clustering = as.data.frame(model_medoids1$clustering)
 clustering$indice= as.integer(rownames(clustering))
 
 colnames(clustering)[1]= "categoria_price"
-clustering2= clustering[order(clustering$indice),]
+clustering2 = clustering[order(clustering$indice),]
 
-center_lon = median(datoskmedoids$long,na.rm = TRUE)
-center_lat = median(datoskmedoids$lat,na.rm = TRUE)
+center_lon = median(datoskmedoids1$long,na.rm = TRUE)
+center_lat = median(datoskmedoids1$lat,na.rm = TRUE)
 
 factpal2 <- colorFactor(c("green","red"), 
                        clustering2$categoria_price )
 
-leaflet(datoskmedoids) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
+leaflet(datoskmedoids1) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
   addCircles(lng = ~long, lat = ~lat,
              color = ~factpal2(clustering2$categoria_price))  %>%
   # controls
@@ -655,12 +757,15 @@ leaflet(datoskmedoids) %>% addProviderTiles("Esri.NatGeoWorldMap") %>%
 
 ## GLM-Regresión Logística.
 
+<p style = "text-align: justify">
 Con este modelo se va a estudiar si existe relación entre el hecho de que una casa sea "cara" ó "barata" dependiendo de las características de las casas. Se va a generar un modelo en el que a partir de las variables prediga la probabilidad de que una casa sea barata o cara.
-
+</p>
 
 ### Train
 
+<p style = "text-align: justify">
 Inicialmente, se probó con todas las variables y después de implementar y evaluar varios modelos, se concluyó que las variables condition y grade_categ no eran importantes, por tanto se eliminaron para este modelo.
+</p>
 
 ```{r}
 
@@ -669,24 +774,29 @@ datos_train_rl$price_categ1<- recode(datos_train_rl$price_categ1, "'B1'=0; 'C1'=
 
 ```
 
+<p style = "text-align: justify">
+Se seleccionan las variables **log_sqft_living** y **zona**, en función de la importancia que el Random Forest asigna a cada variable.
+</p>
 
 ```{r}
 
 set.seed(1234)
-model_glm = glm(price_categ1 ~., family = binomial, data =datos_train_rl )
+model_glm = glm(price_categ1 ~log_sqft_living+zona, family = binomial, data =datos_train_rl)
 summary(model_glm)
 
 ```
 
-La métrica que se ha considerado para evaluar los modelos es la F1-medida, por un lado para las casas caras, y por otro, para las baratas. Después se realiza la media: $\frac{\text{F1-medida}_{caras} + \text{F1-medida}_{baratas}}{2}$
+<p style = "text-align: justify">
+La métrica que se ha considerado para evaluar los modelos es la F1-medida, por un lado para las casas caras, y por otro, para las baratas. Después se realiza la media: 
+</p>
+
+$$\frac{\text{F1-medida }_{caras} + \text{F1-medida }_{baratas}}{2}$$
 
 ```{r}
 
-# EVALUACION
-
 predicciones <- ifelse(test = model_glm$fitted.values > 0.5, yes = 1, no = 0)
-tabla_glm_train <- table(model_glm$model$price_categ1, predicciones,
-                      dnn = c("observaciones", "predicciones"))
+
+tabla_glm_train <- table(model_glm$model$price_categ1, predicciones, dnn = c("observaciones", "predicciones"))
 tabla_glm_train
 
 #caras
@@ -710,8 +820,201 @@ cat(c('Accuracy: ', accuracy_reglog_train), '\n')
 
 ```
 
+<p style = "text-align: justify">
+El resultado de la F1-medida para el modelo GLM considerando las variables: log_sqft_living y zona, es de 0.84, y lo mismo para la accuracy. Este modelo, al ser supervisado, mejora bastante la clasificación de las casas en función de sus características.
+</p>
 
-El resultado de la F1-medida para el modelo GLM considerando las variables: bedrooms, bathrooms_group, log_sqft_living, log_lot, sqft_basement_cat, waterfront, view, lat, lon y zona, es de 0.87, y lo mismo para la accuracy. Este modelo, al ser supervisado, mejora bastante la clasificación de las casas en función de sus características.
+### Test
+
+
+```{r}
+predicciones = predict(model_glm, datos_test_limpio[,-15])
+predicciones <- ifelse(predicciones > 0.5, yes = 1, no = 0)
+
+
+tabla_glm_test <- table(datos_test_limpio$price_categ1, predicciones)
+tabla_glm_test
+
+#caras
+pred_caras_glm_test=tabla_glm_test[2,2]/(tabla_glm_test[2,2]+tabla_glm_test[1,2])
+rec_caras_glm_test=tabla_glm_test[2,2]/(tabla_glm_test[2,2]+tabla_glm_test[2,1])
+F_caras_reglog=(2*pred_caras_glm_test*rec_caras_glm_test)/(pred_caras_glm_test+rec_caras_glm_test)
+cat(c('F1 casas caras: ', F_caras_reglog), '\n')
+
+#baratas
+pred_baratas_glm_test=tabla_glm_test[1,1]/(tabla_glm_test[1,1]+tabla_glm_test[2,1])
+rec_baratas_glm_test=tabla_glm_test[1,1]/(tabla_glm_test[1,1]+tabla_glm_test[1,2])
+F_baratas_reglog=(2*pred_baratas_glm_test*rec_baratas_glm_test)/(pred_baratas_glm_test+rec_baratas_glm_test)
+cat(c('F1 casas baratas: ', F_baratas_reglog), '\n')
+
+#F-Medida
+F_reglog_test= (F_caras_reglog+F_baratas_reglog)/2
+cat(c('F1 global: ', F_reglog_test), '\n')
+
+accuracy_reglog_test = (tabla_glm_test[1,1]+tabla_glm_test[2,2]) / (tabla_glm_test[1,1]+tabla_glm_test[1,2]+tabla_glm_test[2,1]+tabla_glm_test[2,2])
+cat(c('Accuracy: ', accuracy_reglog_test), '\n')
+```
+
+### Validación
+
+
+```{r}
+
+
+predicciones = predict(model_glm, datos_validacion_limpio[,-15])
+predicciones <- ifelse(predicciones > 0.5, yes = 1, no = 0)
+
+
+tabla_glm_validacion <- table(datos_validacion_limpio$price_categ1, predicciones)
+tabla_glm_validacion
+
+#caras
+pred_caras_glm_validacion=tabla_glm_validacion[2,2]/(tabla_glm_validacion[2,2]+tabla_glm_validacion[1,2])
+rec_caras_glm_validacion=tabla_glm_validacion[2,2]/(tabla_glm_validacion[2,2]+tabla_glm_validacion[2,1])
+F_caras_reglog=(2*pred_caras_glm_validacion*rec_caras_glm_validacion)/(pred_caras_glm_validacion+rec_caras_glm_validacion)
+cat(c('F1 casas caras: ', F_caras_reglog), '\n')
+
+#baratas
+pred_baratas_glm_validacion=tabla_glm_validacion[1,1]/(tabla_glm_validacion[1,1]+tabla_glm_validacion[2,1])
+rec_baratas_glm_validacion=tabla_glm_validacion[1,1]/(tabla_glm_validacion[1,1]+tabla_glm_validacion[1,2])
+F_baratas_reglog=(2*pred_baratas_glm_validacion*rec_baratas_glm_validacion)/(pred_baratas_glm_validacion+rec_baratas_glm_validacion)
+cat(c('F1 casas baratas: ', F_baratas_reglog), '\n')
+
+#F-Medida
+F_reglog_validacion= (F_caras_reglog+F_baratas_reglog)/2
+cat(c('F1 global: ', F_reglog_validacion), '\n')
+
+accuracy_reglog_validacion = (tabla_glm_validacion[1,1]+tabla_glm_validacion[2,2]) / (tabla_glm_validacion[1,1]+tabla_glm_validacion[1,2]+tabla_glm_validacion[2,1]+tabla_glm_validacion[2,2])
+cat(c('Accuracy: ', accuracy_reglog_validacion), '\n')
+
+```
+
+
+## GAM
+
+<p style = "text-align: justify">
+Los modelos GAM (Modelos Aditivos Generalizados) son una extensión de los modelos lineales que permiten obtener ajustes no lineales empleando múltiples predictores. Los modelos lineales presentan la restricción de que la predicción es una función lineal de los parámetros del modelo. En cambio, los modelos GAM usan funciones suavizadoras para ajustar los datos a funciones no paramétricas.
+</p>
+
+### Train
+
+
+```{r}
+set.seed(1234)
+
+model_gam_categ <- gam(price_categ1 ~ 
+                   s(log_sqft_living, bs = "ps") + 
+                   s(lat, bs = "ps") + 
+                   s(long, bs = "ps"), data = datos_train_limpio, binomial(link = "logit"))
+
+
+
+summary(model_gam_categ)
+visreg(model_gam_categ)
+
+```
+
+Se evalúa este modelo mediante el cálculo de la diferencia entre el precio predicho y el observado. Para el caso de train, la diferencia media entre el precio real y el predicho es de 118.300\$; para test es de 120.500\$ y para valicación 116.000\$.
+
+```{r}
+
+predicciones <- predict(model_gam_categ, datos_train_limpio)
+predicciones <- ifelse(test = predicciones > 0.5, yes = 1, no = 0)
+
+tabla_gam_train <- table(model_gam_categ$model$price_categ1, predicciones, dnn = c("observaciones", "predicciones"))
+tabla_gam_train
+
+#caras
+pred_caras_gam_train=tabla_gam_train[2,2]/(tabla_gam_train[2,2]+tabla_gam_train[1,2])
+rec_caras_gam_train=tabla_gam_train[2,2]/(tabla_gam_train[2,2]+tabla_gam_train[2,1])
+F_caras_gam=(2*pred_caras_gam_train*rec_caras_gam_train)/(pred_caras_gam_train+rec_caras_gam_train)
+cat(c('F1 casas caras: ', F_caras_gam), '\n')
+
+#baratas
+pred_baratas_gam_train=tabla_gam_train[1,1]/(tabla_gam_train[1,1]+tabla_gam_train[2,1])
+rec_baratas_gam_train=tabla_gam_train[1,1]/(tabla_gam_train[1,1]+tabla_gam_train[1,2])
+F_baratas_gam=(2*pred_baratas_gam_train*rec_baratas_gam_train)/(pred_baratas_gam_train+rec_baratas_gam_train)
+cat(c('F1 casas baratas: ', F_baratas_gam), '\n')
+
+#F-Medida
+F_gam_train= (F_caras_gam+F_baratas_gam)/2
+cat(c('F1 global: ', F_gam_train), '\n')
+
+accuracy_gam_train = (tabla_gam_train[1,1]+tabla_gam_train[2,2]) / (tabla_gam_train[1,1]+tabla_gam_train[1,2]+tabla_gam_train[2,1]+tabla_gam_train[2,2])
+cat(c('Accuracy: ', accuracy_gam_train), '\n')
+
+
+```
+
+
+
+### Test
+
+```{r}
+
+predicciones = predict(model_gam_categ, datos_test_limpio[,-15])
+
+predicciones <- ifelse(predicciones > 0.5, yes = 1, no = 0)
+
+tabla_gam_test <- table(datos_test_limpio$price_categ1, predicciones, dnn = c("observaciones", "predicciones"))
+tabla_gam_test
+
+#caras
+pred_caras_gam_test=tabla_gam_test[2,2]/(tabla_gam_test[2,2]+tabla_gam_test[1,2])
+rec_caras_gam_test=tabla_gam_test[2,2]/(tabla_gam_test[2,2]+tabla_gam_test[2,1])
+F_caras_gam=(2*pred_caras_gam_test*rec_caras_gam_test)/(pred_caras_gam_test+rec_caras_gam_test)
+cat(c('F1 casas caras: ', F_caras_gam), '\n')
+
+#baratas
+pred_baratas_gam_test=tabla_gam_test[1,1]/(tabla_gam_test[1,1]+tabla_gam_test[2,1])
+rec_baratas_gam_test=tabla_gam_test[1,1]/(tabla_gam_test[1,1]+tabla_gam_test[1,2])
+F_baratas_gam=(2*pred_baratas_gam_test*rec_baratas_gam_test)/(pred_baratas_gam_test+rec_baratas_gam_test)
+cat(c('F1 casas baratas: ', F_baratas_gam), '\n')
+
+#F-Medida
+F_gam_test= (F_caras_gam+F_baratas_gam)/2
+cat(c('F1 global: ', F_gam_test), '\n')
+
+accuracy_gam_test = (tabla_gam_test[1,1]+tabla_gam_test[2,2]) / (tabla_gam_test[1,1]+tabla_gam_test[1,2]+tabla_gam_test[2,1]+tabla_gam_test[2,2])
+cat(c('Accuracy: ', accuracy_gam_test), '\n')
+
+
+
+```
+
+### Validación
+
+```{r}
+predicciones = predict(model_gam_categ, datos_validacion_limpio[,-15])
+
+predicciones <- ifelse(predicciones > 0.5, yes = 1, no = 0)
+
+tabla_gam_validacion <- table(datos_validacion_limpio$price_categ1, predicciones, dnn = c("observaciones", "predicciones"))
+tabla_gam_validacion
+
+#caras
+pred_caras_gam_validacion=tabla_gam_validacion[2,2]/(tabla_gam_validacion[2,2]+tabla_gam_validacion[1,2])
+rec_caras_gam_validacion=tabla_gam_validacion[2,2]/(tabla_gam_validacion[2,2]+tabla_gam_validacion[2,1])
+F_caras_gam=(2*pred_caras_gam_validacion*rec_caras_gam_validacion)/(pred_caras_gam_validacion+rec_caras_gam_validacion)
+cat(c('F1 casas caras: ', F_caras_gam), '\n')
+
+#baratas
+pred_baratas_gam_validacion=tabla_gam_validacion[1,1]/(tabla_gam_validacion[1,1]+tabla_gam_validacion[2,1])
+rec_baratas_gam_validacion=tabla_gam_validacion[1,1]/(tabla_gam_validacion[1,1]+tabla_gam_validacion[1,2])
+F_baratas_gam=(2*pred_baratas_gam_validacion*rec_baratas_gam_validacion)/(pred_baratas_gam_validacion+rec_baratas_gam_validacion)
+cat(c('F1 casas baratas: ', F_baratas_gam), '\n')
+
+#F-Medida
+F_gam_validacion= (F_caras_gam+F_baratas_gam)/2
+cat(c('F1 global: ', F_gam_validacion), '\n')
+
+accuracy_gam_validacion = (tabla_gam_validacion[1,1]+tabla_gam_validacion[2,2]) / (tabla_gam_validacion[1,1]+tabla_gam_validacion[1,2]+tabla_gam_validacion[2,1]+tabla_gam_validacion[2,2])
+cat(c('Accuracy: ', accuracy_gam_validacion), '\n')
+
+```
+
+
+
 
 ## KNN
 
@@ -719,37 +1022,45 @@ El resultado de la F1-medida para el modelo GLM considerando las variables: bedr
 
 - Ajuste de Hiperparámetros.
 
+<p style = "text-align: justify">
 Este método se basa en clasificar cada dato en un grupo en función de sus k vecinos más cercanos. Para ello se usa la distancia de cada nuevo punto a los ya existentes. Para ajustar y comparar este modelo, se han usado tres métodos:
+</p>
 
 1. Usando **train.kknn**.
 2. Usando **tune**.
 3. Usando diferentes k de 1 a 50 y comprobando los resultados de la F1-medida.
 
-En primer lugar con la función **train.kknn** se obtiene de manera automática el mejor valor de k hasta un máximo de $k=20$.
+<p style = "text-align: justify">
+En primer lugar con la función **train.kknn** se obtiene de manera automática el mejor valor de k hasta un máximo de $k=30$.
+</p>
 
 ```{r}
 set.seed(1234)
 
-suppressWarnings(suppressMessages(library(kknn)))
-knn_1 <- train.kknn(price_categ1 ~ ., data = datos_train_limpio, kmax = 20)
+knn_1 <- train.kknn(price_categ1 ~ bedrooms+log_sqft_living+lat+long, data = datos_train_limpio, kmax = 30)
 knn_1
 
 ```
 
-En segundo lugar se usa la función **tune** que itera hasta $k=20$ y muestra el error y la dispersión para cada valor de k.
+<p style = "text-align: justify">
+En segundo lugar se usa la función **tune** que itera hasta $k=30$ y muestra el error y la dispersión para cada valor de k.
+</p>
 
 ```{r}
 set.seed(1234)
 
-knn_2 <- tune.knn(x=scale(datos_train_numeric),
-                  y=as.factor(datos_train_limpio$price_categ1), k = 1:20,
+knn_2 <- tune.knn(x = scale(datos_train_numeric[,c(1,2,4,5)]),
+                  y = as.factor(datos_train_limpio$price_categ1),
+                  k = 1:30,
                   tunecontrol = tune.control(sampling = "boot"))
 summary(knn_2)
 plot(knn_2, main = "Mejor k según tune")
 
 ```
 
+<p style = "text-align: justify">
 En tercer lugar, se comprueba manualmente los resultados de la F1-medida con diferentes modelos desde $k=1$ hasta el $k=50$ y se representa el resultado.
+</p>
 
 ```{r}
 set.seed(1234)
@@ -760,7 +1071,7 @@ rango=1:k_maximo
 f1_modelos=c()
 
 for (i in rango){
-  knn_3=knn.cv(scale(datos_train_numeric),cl=as.factor(datos_train_limpio$price_categ1),k=i)
+  knn_3=knn.cv(scale(datos_train_numeric[,c(1,2,4,5)]), cl=as.factor(datos_train_limpio$price_categ1),k=i)
   tabla=table(datos_train_limpio$price_categ1,knn_3)
   # f1 casas caras
   pred_means_caras=tabla[2,2]/(tabla[2,2]+tabla[1,2])
@@ -780,11 +1091,13 @@ cat(c('Valor óptimo de k: ', which.max(f1_modelos)))
 
 ```
 
-De la primer forma obtenemos un valor óptimo de $k=15$, del segundo modo a partir de aproximadamente $k=15$ el error es muy pequeño, y de la forma manual, concluimos que el mejor valor de k en función de la F1-medida es de $k=17$. Finalmente, elegimos el valor de $k=17$, implementamos el modelo y lo evaluamos.
+<p style = "text-align: justify">
+De la primer forma obtenemos un valor óptimo de $k=20$, del segundo modo a partir de aproximadamente $k=23$ el error es muy pequeño, y de la forma manual, concluimos que el mejor valor de k en función de la F1-medida es de $k=14$. Finalmente, elegimos el valor de $k=17$, implementamos el modelo y lo evaluamos.
+</p>
 
 ```{r}
 
-model_knn=knn.cv(scale(datos_train_numeric),cl=as.factor(datos_train_limpio$price_categ1),k=17, prob = TRUE)
+model_knn=knn.cv(scale(datos_train_numeric[,c(1,2,4,5)]), cl=as.factor(datos_train_limpio$price_categ1), k=14, prob = TRUE)
 
 ```
 
@@ -831,13 +1144,16 @@ cat(c('Accuracy: ', accuracy_knn_train), '\n')
 
 ```
 
-Como los valores de k óptimos son muy parecidos entre las diferentes técnicas usadas para determinar este parámetro, se elige $k=17$, con los que se obtiene una F1-medida y accuracy de 0.88.
+<p style = "text-align: justify">
+Como los valores de k óptimos son muy parecidos entre las diferentes técnicas usadas para determinar este parámetro, se elige $k=14$, con los que se obtiene una F1-medida y accuracy de 0.88.
+</p>
 
 ### Test
 
 ```{r}
 
-tabla_knn_test=table(datos_test_limpio$price_categ1, knn(scale(datos_train_numeric), scale(datos_test_numeric),cl=datos_train_limpio$price_categ1,k=17))
+predict_knn_test <- knn(scale(datos_train_numeric), scale(datos_test_numeric), cl=datos_train_limpio$price_categ1, k=14)
+tabla_knn_test=table(datos_test_limpio$price_categ1, predict_knn_test)
 tabla_knn_test
 
 pred_caras_knn_test=tabla_knn_test[2,2]/(tabla_knn_test[2,2]+tabla_knn_test[1,2])
@@ -862,7 +1178,9 @@ cat(c('Accuracy: ', accuracy_knn_test), '\n')
 
 ```{r}
 
-tabla_knn_validacion=table(datos_validacion_limpio$price_categ1, knn(scale(datos_train_numeric), scale(datos_validacion_numeric),cl=datos_train_limpio$price_categ1,k=17))
+predict_knn_validacion <- knn(scale(datos_train_numeric), scale(datos_validacion_numeric),cl=datos_train_limpio$price_categ1,k=14)
+
+tabla_knn_validacion=table(datos_validacion_limpio$price_categ1, predict_knn_validacion)
 tabla_knn_validacion
 
 pred_caras_knn_validacion=tabla_knn_validacion[2,2]/(tabla_knn_validacion[2,2]+tabla_knn_validacion[1,2])
@@ -885,24 +1203,30 @@ cat(c('Accuracy: ', accuracy_knn_validacion), '\n')
 
 ## Decision Trees
 
+<p style = "text-align: justify">
 Los árboles de decisión son un método usado en distintas disciplinas como modelo de predicción. Este método es similar a diagramas de flujo, en los que llegamos a puntos donde se toman decisiones de acuerdo a una regla. De manera general, lo que hace este algoritmo es encontrar la variable independiente que mejor separa nuestros datos en grupos, que corresponden con las categorías de la variable objetivo, en nuestro caso casas caras frente a baratas.
+</p>
 
 ### Train
 
+<p style = "text-align: justify">
 Como en este modelo se toman decisiones en base a puntos de corte en las diferentes variables, se ha decidido eliminar la latitud y longitud dado que ya tenemos una variable **zona** que aporta esta misma información. 
+</p>
 
-El parámetro **cp** (parámetro de complejidad) da una idea de lo que se penaliza añadir una nueva rama en el modelo, un cp más pequeño implica que el tamaño del árbol sea más reducido y viceversa. Cualquier división que no mejore este parámetro se eliminará mediante validación cruzada. El parámetro **minbucket** indica el número de casas que tienen que quedar en cualquier nodo terminal del árbol. Por último, **maxdeph** indica la profundidad del árbol, o número máximo de capas, contando la raiz como profundidad = 0.
+<p style = "text-align: justify">
+El parámetro **cp** (parámetro de complejidad) da una idea de lo que se penaliza añadir una nueva rama en el modelo, un cp más pequeño implica que el tamaño del árbol sea más reducido y viceversa. Cualquier división que no mejore este parámetro se eliminará mediante validación cruzada. El parámetro **minbucket** indica el número de casas que tienen que quedar en cualquier nodo terminal del árbol. Por último, **maxdeph** indica la profundidad del árbol, o número máximo de capas, contando la raiz como profundidad = 0. Se categoriza para este modelo log_sqft_living que ahora toma los niveles P (<3.4) y G (>3.4) y se consideran las variables log_sqft_categ, zona y log_lot.
+</p>
 
 ```{r}
+set.seed(1234)
 
-#quitamos lat y long:
-datos_decision_tree<-datos_train_limpio[,-c(10,11)]
+datos_decision_tree<-datos_train_limpio
+datos_decision_tree$log_sqft_categ <- cut(datos_decision_tree$log_sqft_living, breaks = c(0, 3.4, 5), labels = c("P", "G"))
 
-
-decisiontree_model=rpart(price_categ1~., 
+decisiontree_model=rpart(price_categ1~log_sqft_categ+zona+log_lot, 
                          data=datos_decision_tree, 
                          parms=list(split="gini"),
-                         control = rpart.control(cp = 0.005, maxdepth = 5, minbucket = 400))
+                         control = rpart.control(cp = 0.005, maxdepth = 4, minbucket = 400))
 
 # print(decisiontree_model)
 
@@ -910,8 +1234,9 @@ fancyRpartPlot(decisiontree_model, caption='')
 
 ```
 
-
-El árbol obtenido con los parámetros indicados considera que las variables zona y log_sqft_living son las más importantes para realizar la clasificación. A continuación, se evalúa este modelo y el resultado para la F1-medida y accuracy es de 0.84.
+<p style = "text-align: justify">
+El árbol obtenido con los parámetros indicados considera que las variables zona y log_sqft_living son las más importantes para realizar la clasificación. A continuación, se evalúa este modelo y el resultado para la F1-medida y accuracy es de 0.81.
+</p>
 
 ```{r}
 
@@ -939,8 +1264,11 @@ cat(c('Accuracy: ', F_dt_train), '\n')
 ### Test
 
 ```{r}
+datos_decision_tree_test <- datos_test_limpio
+datos_decision_tree_test$log_sqft_categ <- cut(datos_decision_tree_test$log_sqft_living, breaks = c(0, 3.4, 5), labels = c("P", "G"))
 
-tabla_test_arbol=table(obs = datos_test_limpio$price_categ1, pred = predict(decisiontree_model, datos_test_limpio[,-15], type = "class"))
+
+tabla_test_arbol=table(obs = datos_decision_tree_test$price_categ1, pred = predict(decisiontree_model, datos_decision_tree_test, type = "class"))
 tabla_test_arbol
 
 pred_caras_dt_test = tabla_test_arbol[2,2]/(tabla_test_arbol[2,2]+tabla_test_arbol[1,2])
@@ -965,8 +1293,10 @@ cat(c('Accuracy: ', F_dt_test), '\n')
 ### Validación
 
 ```{r}
+datos_decision_tree_validacion <- datos_validacion_limpio
+datos_decision_tree_validacion$log_sqft_categ <- cut(datos_decision_tree_validacion$log_sqft_living, breaks = c(0, 3.4, 5), labels = c("P", "G"))
 
-tabla_validacion_arbol=table(obs = datos_validacion_limpio$price_categ1, pred = predict(decisiontree_model, datos_validacion_limpio[,-15], type = "class"))
+tabla_validacion_arbol=table(obs = datos_decision_tree_validacion$price_categ1, pred = predict(decisiontree_model, datos_decision_tree_validacion, type = "class"))
 tabla_validacion_arbol
 
 pred_caras_dt_validacion = tabla_validacion_arbol[2,2]/(tabla_validacion_arbol[2,2]+tabla_validacion_arbol[1,2])
@@ -990,33 +1320,54 @@ cat(c('Accuracy: ', F_dt_validacion), '\n')
 
 ## Random Forest
 
+<p style = "text-align: justify">
 Los Random forests son una combinación de árboles predictores tal que cada árbol depende de los valores de un vector aleatorio probado independientemente y con la misma distribución para cada uno de estos. Es una modificación sustancial de bagging que construye una larga colección de árboles no correlacionados y luego los promedia.
+</p>
 
 ### Train
 
+<p style = "text-align: justify">
 La implementación de este modelo se realiza mediante la función **randomForest**, y los parámetros de esta función son: **ntree** que indica el número de árboles que se van a considerar; **importance** que indica si se considerará la importancia de los predictores; **proximity** que indica si se calculará o no la proximidad entre las filas (vectores de características de las casas); **mtry** para indicar el número de variables que serán seleccionadas aleatoriamente en cada división; y **replace** para indicar si las muestras serán tomadas con o sin reemplazamiento.
-
+</p>
 
 ```{r}
+
 set.seed(1234)
-randomforest_model=randomForest(price_categ1~., 
+randomforest_model_all=randomForest(price_categ1~., 
                                 data=datos_train_limpio, 
                                 parms=list(split="gini"),
-                                ntree=200, 
+                                ntree=50, 
                                 importance = FALSE, 
                                 proximity = FALSE, 
                                 mtry=6, 
                                 replace = TRUE)
-print(randomforest_model)
-
+randomforest_model_all$importance
+print(randomforest_model_all)
 ```
 
+```{r}
+set.seed(1234)
+randomforest_model=randomForest(price_categ1~log_sqft_living+log_lot+lat+long, 
+                                data=datos_train_limpio, 
+                                parms=list(split="gini"),
+                                ntree=50, 
+                                importance = FALSE, 
+                                proximity = FALSE, 
+                                mtry=3, 
+                                replace = TRUE)
+print(randomforest_model)
+```
+
+<p style = "text-align: justify">
 Después de implementar el modelo, se evalua, obteniendo una F1-medida y accuracy de 0.9, el mejor resultado obtenido hasta el momento.
+</p>
 
 ```{r}
 
 tabla_train_randomforest = table(obs = datos_train_limpio$price_categ1, pred = predict(randomforest_model, type = "class") )
 tabla_train_randomforest
+
+mosaic(tabla_train_randomforest, shade = T, colorize = T, main="Matriz Confusión",gp = gpar(fill = matrix(c("cyan3", "salmon", "salmon", "cyan3"), 2, 2)))
 
 pred_caras_rf_train = tabla_train_randomforest[2,2]/(tabla_train_randomforest[2,2]+tabla_train_randomforest[1,2])
 rec_caras_rf_train = tabla_train_randomforest[2,2]/(tabla_train_randomforest[2,2]+tabla_train_randomforest[2,1])
@@ -1088,10 +1439,13 @@ cat(c('Accuracy: ', accuracy_rf_validacion), '\n')
 
 ## SVM
 
+<p style = "text-align: justify">
 Una máquina de vectores de soporte (SVM) es un algoritmo de aprendizaje supervisado. Este algoritmo construye un hiperplano óptimo en forma de superficie de decisión, de modo que el margen de separación entre las dos clases en los datos sea lo más amplia posible. Los vectores de soporte hacen referencia a un pequeño subconjunto de las observaciones de entrenamiento que se utilizan como soporte para la ubicación óptima de la superficie de decisión.
+</p>
 
-La función **svm** de la librería **e1071**, toma como parámatros el kernel a emplear (en nuestro caso se usa un kernel lineal, **linear**), el coste (**cost**) para ajustar el número de vectores soporte y **probility** para indicar si el modelo debe permitir predicciones de probabilidad.
-
+<p style = "text-align: justify">
+La función **svm** de la librería **e1071**, toma como parámatros el kernel a emplear (en nuestro caso se usa un kernel lineal, **linear**), el coste (**cost**) para ajustar el número de vectores soporte y **probability** para indicar si el modelo debe permitir predicciones de probabilidad.
+</p>
 
 
 - Ajuste de hiperparámetros para el SVM
@@ -1099,29 +1453,35 @@ La función **svm** de la librería **e1071**, toma como parámatros el kernel a
 ```{r}
 
 # set.seed(1234)
-# svm_tune <- tune("svm", price_categ1 ~., data = datos_train_limpio, kernel = 'radial', 
-#                ranges = list(cost = c(0.01, 1, 10), gamma = c(0.5, 2, 4)))
 
-load("svm_tune.Rdata")
-svm_tune <- svm_cv
-rm(svm_cv)
+ # svm_tune3 <- tune("svm", price_categ1 ~ log_sqft_living + zona + lat, data = datos_train_limpio, kernel = 'radial', 
+ #                ranges = list(cost = c(0.01, 0.1,1, 10,100), gamma = c(0.01, 0.1, 1, 10, 100)))
+ 
+load("svm_tune2.RData")
+
+svm_tune <- svm_tune3
+svm_tune$best.parameters
+
+rm(svm_tune3)
 best_cost <- svm_tune$best.parameters[1]
+best_cost$cost
 best_gamma <- svm_tune$best.parameters[2]
+best_gamma$gamma
 
 ```
 
 
 
 ```{r}
+
 set.seed(1234)
-modelo_svm <- e1071::svm(formula = price_categ1 ~ log_sqft_living + zona, 
-                         data = datos_train_limpio, 
+modelo_svm <- e1071::svm(formula = price_categ1 ~ log_sqft_living + zona + lat,
+                         data = datos_train_limpio,
                          kernel = "radial",
                          probability =TRUE,
-                         # fijo cost a 0.01 - con 0.01: 11160 | con 0.5: 5900 | con 0.8: 5820 | con 1: 5816 | con 2: 5879
-                         gamma = best_gamma,
-                         # fijo gamma a 1 - con cost 0.01: 5816 | con cost 1: 4868 | con cost 8: 4849 | con cost 100: 4790
-                         cost = best_cost)
+                         gamma = best_gamma$gamma,
+                         cost = best_cost$cost)
+
 summary(modelo_svm)
 
 ```
@@ -1135,12 +1495,13 @@ summary(modelo_svm)
 
 plot(modelo_svm, 
      datos_train_limpio, 
-     formula = log_sqft_living~bedrooms)
+     formula = log_sqft_living~lat)
 
 ```
 
-
+<p style = "text-align: justify">
 Por último, se evalúa el resultado del modelo, obteniendo una F1-medida y accuracy de 0.87.
+</p>
 
 ### Train
 
@@ -1218,71 +1579,23 @@ cat(c('Accuracy: ', accuracy_svm_validacion), '\n')
 ```
 
 
-
+<p style = "text-align: justify">
 Pese a que el ajuste de hiperparámetros indica que el valor óptimo de cost es 8, repetimos los cálculos y la F1-global mejora muy poco (aprox. 0.0004). Pasamos de una F1-medida de 0.8686 a una F1-medida de 0.8690.
-
-# GAM
-
-Los modelos GAM (Modelos Aditivos Generalizados) son una extensión de los modelos lineales que permiten obtener ajustes no lineales empleando múltiples predictores
-
-### Train
-
-```{r}
-datos_train_gam <- datos_train_limpio
-datos_train_gam$price <- datos_train$price
- 
-model_gam <- gam(price ~ s(bedrooms, bs = "cr") + bathrooms_group + s(log_sqft_living, bs = "cr") + 
-                   s(log_lot, bs = "cr") + sqft_basement_cat + waterfront + view + s(lat, bs = "cr") + 
-                   s(long, bs = "cr") + zona + yr_renovated_catg, data = datos_train_gam)
-
-summary(model_gam)
-plot(model_gam, ylab = "price")
-
-
-par(mfrow=c(3,3))
-visreg(model_gam)
-
-```
-
-### Test
-
-```{r}
-datos_test_limpio$price <- datos_test$price
-datos_test_limpio$price_predict = predict(model_gam, datos_test_limpio)
-
-
-datos_test_limpio$precio_diff <- abs(datos_test_limpio$price - datos_test_limpio$price_predict)
-
-dif_media_test <- mean(datos_test_limpio$precio_diff)
-dif_media_test
-
-```
-
-### Validación
-
-```{r}
-datos_validacion_limpio$price <- datos_validacion$price
-datos_validacion_limpio$price_predict = predict(model_gam, datos_validacion_limpio)
-
-
-datos_validacion_limpio$precio_diff <- abs(datos_validacion_limpio$price - datos_validacion_limpio$price_predict)
-
-dif_media_test <- mean(datos_validacion_limpio$precio_diff)
-dif_media_test
-```
-
+</p>
 
 # Evaluación y comparación de modelos
 
+<p style = "text-align: justify">
 Una vez que se han entrenado y optimizado distintos modelos, se tiene que identificar cuál de ellos consigue mejores resultados para el problema en cuestión, en este caso, predecir si una casa es barata o cara. Con los datos disponibles, existen dos formas de comparar los modelos. Si bien las dos no tienen por qué dar los mismos resultados, son complementarias a la hora de tomar una decisión final.
+</p>
 
 ```{r}
 
 models_cross = data.frame(
-"modelo"= c('GLM','knn','Decision_Tree','Random_Forest','SVM'),
-"F_Medida_train" = c(F_reglog_train,F_knn_train,F_dt_train,F_rf_train,F_svm_train),
-"F_Medida_test" = c(NA,F_knn_test,F_dt_test,F_rf_test,F_svm_test),
-"F_Medida_validacion" = c(NA,F_knn_validacion,F_dt_validacion,F_rf_validacion,F_svm_validacion))
+"modelo"= c('GLM','GAM','Knn','Decision_Tree','Random_Forest','SVM'),
+"F_Medida_train" = c(F_reglog_train,F_gam_train,F_knn_train,F_dt_train,F_rf_train,F_svm_train),
+"F_Medida_test" = c(F_reglog_test,F_gam_test, F_knn_test,F_dt_test,F_rf_test,F_svm_test),
+"F_Medida_validacion" = c(F_reglog_validacion,F_gam_validacion,F_knn_validacion,F_dt_validacion,F_rf_validacion,F_svm_validacion))
 models_cross
 
 ggplot(data=models_cross, aes(x=modelo, y=F_Medida_train, fill=modelo)) + 
@@ -1292,7 +1605,9 @@ ggplot(data=models_cross, aes(x=modelo, y=F_Medida_train, fill=modelo)) +
 
 ```
 
+<p style = "text-align: justify">
 El mejor modelo según la métrica de evaluación considerada (F1-medida para las casas caras y las baratas) es el Random Forest y el peor el Decision Tree, si bien es cierto que todos ellos obtienen un resultado aceptable, entre 0.84 y 0.9.
+</p>
 
 # Curva ROC
 
@@ -1302,49 +1617,33 @@ set.seed(1234)
 # REGRESIÓN LOGÍSTICA
 predictions_glm <- predict(model_glm, newdata = datos_train_rl, type = "response")
 pred_glm <- prediction(predictions_glm, datos_train_rl$price_categ1)
-perf_glm <- performance(pred_glm,"sens","spec")
+perf_glm <- performance(pred_glm,"spec","sens")
 
-alpha_glm <- data.frame(perf_glm@alpha.values)
-x_val_glm <- data.frame(perf_glm@x.values)
-best_alpha_glm <- alpha_glm[(0.6<x_val_glm[,1] & x_val_glm[,1]<0.6001),]
-
+# GAM
+# predictions_gam <- predict(model_gam_categ, newdata = datos_train_limpio, type = "response")
+# pred_gam <- prediction(predictions_gam, datos_train_limpio$price_categ1)
+# perf_gam <- performance(pred_gam,"spec","sens")
 
 # KNN
-# model_knn=knn.cv(scale(datos_train_numeric),cl=as.factor(datos_train_limpio$price_categ1),k=17, prob = TRUE)
-predictions_Knn <- knn(scale(datos_train_numeric), 
-                       scale(datos_train_numeric), 
-                       cl=datos_train_limpio$price_categ1, k=17, prob = TRUE)
+predictions_Knn <- knn(scale(datos_train_numeric), scale(datos_train_numeric), cl=datos_train_limpio$price_categ1, k=14, prob = TRUE)
 pred_knn <- prediction(attr(predictions_Knn,"prob"), datos_train_limpio$price_categ1)
-perf_knn <- performance(pred_knn,"sens","spec")
-
-alpha_knn <- data.frame(perf_knn@alpha.values)
-x_val_knn <- data.frame(perf_knn@x.values)
-best_alpha_knn <- alpha_knn[(0.6<x_val_knn[,1] & x_val_knn[,1]<0.6001),]
+perf_knn <- performance(pred_knn,"spec","sens")
 
 # ARBOL DE DECISION
 predictions_tree <- predict(decisiontree_model, newdata = datos_decision_tree, type = "prob")
 pred_tree = prediction(predictions_tree[,2], datos_decision_tree$price_categ1)
-perf_tree = performance(pred_tree,"sens","spec")
-
-alpha_tree <- data.frame(perf_tree@alpha.values)
-x_val_tree <- data.frame(perf_tree@x.values)
-best_alpha_tree <- alpha_tree[(0.6<x_val_tree[,1] & x_val_tree[,1]<0.6001),]
+perf_tree = performance(pred_tree,"spec","sens")
 
 # RANDOM FOREST
 predictions_rf <- predict(randomforest_model, new_data=datos_train_limpio, type = "prob")
 pred_rf <- prediction(predictions_rf[,2],datos_train_limpio$price_categ1)
-perf_rf <- performance(pred_rf,"sens","spec")
-
-alpha_rf <- data.frame(perf_rf@alpha.values)
-x_val_rf <- data.frame(perf_rf@x.values)
-best_alpha_rf <- alpha_rf[(0.6<x_val_rf[,1] & x_val_rf[,1]<0.6001),]
-
+perf_rf <- performance(pred_rf,"spec","sens")
 
 # SVM
 predictions_svm <- predict(modelo_svm, newdata=datos_train_limpio, probability = TRUE)
 prob_svm<-attr(predictions_svm,"probabilities")
 pred_svm <- prediction(prob_svm[,2], datos_train_limpio$price_categ)
-perf_svm <- performance(pred_svm,"sens","spec")
+perf_svm <- performance(pred_svm,"spec","sens")
 
 
 plot(perf_glm,col="blue")
@@ -1360,4 +1659,8 @@ legend(x="left", legend=c("GLM","DT","RF","SVM","KNN"), fill=c("blue","red","gre
 
 # Conclusiones
 
+<p style = "text-align: justify">
 Nos quedamos con la acuracy ya que es la única medida que tiene en cuenta los aciertos de las casas caras y de las baratas (la F_medida no tiene en cuenta los TN y la sensibilidad y especificidad solo tienen en cuenta que acierte las caras o las baratas pero no que acierte en ambas)
+</p>
+
+
