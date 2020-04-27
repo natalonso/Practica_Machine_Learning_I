@@ -651,7 +651,7 @@ Se comparan los datos obtenido con $k=2$ y con $k=10$:
 ```{r}
 # load("model_km10.RData")
 table(model_km$cluster, datos_train_limpio$price_categ1) #asignación de observación a los cluster
-table(model_km10$cluster, datos_train_limpio$price_categ1)
+# table(model_km10$cluster, datos_train_limpio$price_categ1)
 
 ```
 
