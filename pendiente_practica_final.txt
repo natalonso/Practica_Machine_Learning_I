@@ -3,7 +3,6 @@
 PENDIENTE MACHINE LEARNING I
 #############################
 
--Revisar curva ROC del GAM.
 -Redactar conclusiones.
 
 #############################

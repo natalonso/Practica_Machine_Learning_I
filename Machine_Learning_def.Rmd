@@ -1,7 +1,7 @@
 ---
 title: "Machine learning I"
 author: "Natalia Alonso, Beatriz Visitación y Susana Albarrán"
-date: "7/2/2020"
+date: "28/04/2020"
 output:
   html_document:
     code_folding: show
@@ -283,10 +283,10 @@ Se han realizado dos categorizaciones adicionales sobre el conjunto de datos. De
 </p>
 
 
-- <p style = "text-align: justify">**Zipcode**, esta variable es de tipo factor y tenía 70 códigos postales, por lo que se ha decidido aplicar un árbol de decisión para ver cómo clasificaba los códigos postales y así volver a categorizarla según el resultado obtenido.</p>
+  + <p style = "text-align: justify">**Zipcode**, esta variable es de tipo factor y tenía 70 códigos postales, por lo que se ha decidido aplicar un árbol de decisión para ver cómo clasificaba los códigos postales y así volver a categorizarla según el resultado obtenido.</p>
 
 ```{r}
-
+set.seed(1234)
 model_selec_zipcode<-rpart(price_categ1~zipcode,data=datos_train ,parms=list(split="gini"))
 print(model_selec_zipcode)
 
@@ -305,13 +305,13 @@ datos_train$zipcode = NULL
 ```
 
 
-- <p style = "text-align: justify">**bathrooms_group**, se aplica el mismo método que con zipcode para ver cómo se puede categorizar esta variable. Toma valores de 1 a 8 y queremos reducir el número de niveles.</p>
+  + <p style = "text-align: justify">**bathrooms_group**, se aplica el mismo método que con zipcode para ver cómo se puede categorizar esta variable. Toma valores de 1 a 8 y queremos reducir el número de niveles.</p>
 
 ```{r}
-
+set.seed(1234)
 model_selec_bathrooms<-rpart(price_categ1~bathrooms_group,data=datos_train ,parms=list(split="gini"))
 print(model_selec_bathrooms)
-
+fancyRpartPlot(model_selec_bathrooms, caption='')
 ```
 
 <p style = "text-align: justify">
@@ -490,7 +490,7 @@ Es un método que permite simplificar la complejidad de espacios muestrales con 
 
 ```{r}
 
-datospca<-datos_train_numeric[c(1:3)]
+datospca<-datos_train_numeric
 pca<-prcomp(datospca,scale=T)
 plot(pca, main = 'Análisis de componentes principales', xlab= 'Componente')
 
@@ -508,13 +508,13 @@ biplot(x = pca, scale = 0, cex = 0.6, col = c("blue4", "brown3"))
 ```
 
 <p style = "text-align: justify">
-Se observa, como la componente 1 (PC1) está dando un peso de 0.41 a log_lot, un peso de 0.66 a log_sqft_living y un peso de 0.62 a bedrooms. La componente 2 (PC2) por otro lado estaría capturando la diferencia entre bedrooms (-0.42) y log_sqft_living (-0.16), frente a log_lot (0.89). Estas conclusiones se extraen de los pesos que cada autovector da a cada variable.
+Se observa, como la componente 1 está dando un peso de 0.51 a bedrooms, 0.58 a log_sqft_living, 0.46 a log_lot, -0.10 a lat y 0.41 a long. La componente 2 -0.41 a bedrooms, -0.33 a log_sqft_living, 0.36 a log_lot, -0.63 a lat y 0.42 a long. Esta componente estaría diferenciando bedrooms, log_sqft_living y lat, frente a log_lot y long. Estas conclusiones se extraen de los pesos que cada autovector da a cada variable. Con las dos primeras componenetes se estarían explicando el 64% de la variabilidad de los datos. Si se consideraran las tres primeras dimensiones, se llegaría al 81%.
 </p>
 
 # Métodos de agrupamiento-No supervisado
 
 <p style = "text-align: justify">
-A continuación, se implementan tres métodos de agrupamiento no supervisado. Primero, un método jerárquico para averiguar (si es posible) la cantidad adecuada de clústers y, a continuación, K-Means y K-Medoids. La agrupación es una técnica para agrupar puntos de datos similares en un grupo y separar las diferentes observaciones en diferentes grupos, de forma que un mismo cluster agrupe casas con características homogéneas que se diferencien en cierta medida del resto de clústers.
+A continuación, se implementan tres métodos de agrupamiento no supervisado. Primero, un **método jerárquico** para averiguar (si es posible) la cantidad adecuada de clústers y, a continuación, **K-Means** y **K-Medoids**. La agrupación es una técnica para agrupar puntos de datos similares en un grupo y separar las diferentes observaciones en diferentes grupos, de forma que un mismo cluster agrupe casas con características homogéneas que se diferencien en cierta medida del resto de clústers.
 </p>
 
 ## Clúster Jerárquico
@@ -1092,7 +1092,7 @@ cat(c('Valor óptimo de k: ', which.max(f1_modelos)))
 ```
 
 <p style = "text-align: justify">
-De la primer forma obtenemos un valor óptimo de $k=20$, del segundo modo a partir de aproximadamente $k=23$ el error es muy pequeño, y de la forma manual, concluimos que el mejor valor de k en función de la F1-medida es de $k=14$. Finalmente, elegimos el valor de $k=17$, implementamos el modelo y lo evaluamos.
+De la primer forma obtenemos un valor óptimo de $k=20$, del segundo modo a partir de aproximadamente $k=23$ el error es muy pequeño, y de la forma manual, concluimos que el mejor valor de k en función de la F1-medida es de $k=14$. Finalmente, elegimos el valor de $k=14$, implementamos el modelo y lo evaluamos.
 </p>
 
 ```{r}
@@ -1464,9 +1464,7 @@ svm_tune$best.parameters
 
 rm(svm_tune3)
 best_cost <- svm_tune$best.parameters[1]
-best_cost$cost
 best_gamma <- svm_tune$best.parameters[2]
-best_gamma$gamma
 
 ```
 
@@ -1486,22 +1484,6 @@ summary(modelo_svm)
 
 ```
 
-
-
-
-
-
-```{r}
-
-plot(modelo_svm, 
-     datos_train_limpio, 
-     formula = log_sqft_living~lat)
-
-```
-
-<p style = "text-align: justify">
-Por último, se evalúa el resultado del modelo, obteniendo una F1-medida y accuracy de 0.87.
-</p>
 
 ### Train
 
@@ -1527,6 +1509,11 @@ accuracy_svm_train = (tabla_svm_train[1,1]+tabla_svm_train[2,2]) / (tabla_svm_tr
 cat(c('Accuracy: ', accuracy_svm_train), '\n')
 
 ```
+
+<p style = "text-align: justify">
+En base al ajuste de hiperparámetros, el mejor valor del coste es de 1, y para gamma es de 10. Por último, se evalúa el resultado del modelo, obteniendo una F1-medida y accuracy de 0.87.
+</p>
+
 
 ### Test
 
@@ -1579,9 +1566,6 @@ cat(c('Accuracy: ', accuracy_svm_validacion), '\n')
 ```
 
 
-<p style = "text-align: justify">
-Pese a que el ajuste de hiperparámetros indica que el valor óptimo de cost es 8, repetimos los cálculos y la F1-global mejora muy poco (aprox. 0.0004). Pasamos de una F1-medida de 0.8686 a una F1-medida de 0.8690.
-</p>
 
 # Evaluación y comparación de modelos
 
@@ -1592,15 +1576,16 @@ Una vez que se han entrenado y optimizado distintos modelos, se tiene que identi
 ```{r}
 
 models_cross = data.frame(
-"modelo"= c('GLM','GAM','Knn','Decision_Tree','Random_Forest','SVM'),
+"Modelo"= c('GLM','GAM','KNN','Decision_Tree','Random_Forest','SVM'),
 "F_Medida_train" = c(F_reglog_train,F_gam_train,F_knn_train,F_dt_train,F_rf_train,F_svm_train),
 "F_Medida_test" = c(F_reglog_test,F_gam_test, F_knn_test,F_dt_test,F_rf_test,F_svm_test),
 "F_Medida_validacion" = c(F_reglog_validacion,F_gam_validacion,F_knn_validacion,F_dt_validacion,F_rf_validacion,F_svm_validacion))
+models_cross = models_cross[order(-models_cross$F_Medida_train),]
 models_cross
 
-ggplot(data=models_cross, aes(x=modelo, y=F_Medida_train, fill=modelo)) + 
-    geom_bar(stat="identity", position="dodge") +
-    ylim (0, 1)
+ggplot(data=models_cross, aes(x=reorder(Modelo,F_Medida_train), y=F_Medida_train, fill=Modelo)) +
+  xlab("Modelos") +
+  geom_bar(stat="identity")
 
 
 ```
@@ -1620,9 +1605,10 @@ pred_glm <- prediction(predictions_glm, datos_train_rl$price_categ1)
 perf_glm <- performance(pred_glm,"spec","sens")
 
 # GAM
-# predictions_gam <- predict(model_gam_categ, newdata = datos_train_limpio, type = "response")
-# pred_gam <- prediction(predictions_gam, datos_train_limpio$price_categ1)
-# perf_gam <- performance(pred_gam,"spec","sens")
+predictions_gam <- predict( model_gam_categ, type = "response")
+predictions_gam <- as.data.frame(predictions_gam)
+pred_gam <- prediction(predictions_gam, datos_train_limpio$price_categ1)
+perf_gam <- performance(pred_gam,"spec","sens")
 
 # KNN
 predictions_Knn <- knn(scale(datos_train_numeric), scale(datos_train_numeric), cl=datos_train_limpio$price_categ1, k=14, prob = TRUE)
@@ -1646,21 +1632,47 @@ pred_svm <- prediction(prob_svm[,2], datos_train_limpio$price_categ)
 perf_svm <- performance(pred_svm,"spec","sens")
 
 
-plot(perf_glm,col="blue")
+plot(perf_glm,col="blue", xlim=c(1,0))
+plot(perf_gam,col="black", add = TRUE)
 plot(perf_tree, col="red",add = TRUE)
 plot(perf_rf,col="green", add = TRUE)
 plot(perf_svm, col="yellow",add = TRUE)
 plot(perf_knn, col="orange",add = TRUE)
-legend(x="left", legend=c("GLM","DT","RF","SVM","KNN"), fill=c("blue","red","green","yellow","orange"), cex=0.8)
+legend(x="right", legend=c("GLM","GAM","DT","RF","SVM","KNN"), fill=c("blue","black","red","green","yellow","orange"), cex=0.8)
 
 ```
 
 
 
-# Conclusiones
+# Conclusiones y líneas futuras
+
+## Conclusiones
 
 <p style = "text-align: justify">
-Nos quedamos con la acuracy ya que es la única medida que tiene en cuenta los aciertos de las casas caras y de las baratas (la F_medida no tiene en cuenta los TN y la sensibilidad y especificidad solo tienen en cuenta que acierte las caras o las baratas pero no que acierte en ambas)
+Tras el análisis exploratorio y la categorización de la variable respuesta, se realiza un análisis de componentes principales, y se implementan modelos de aprendizaje supervisado y no supervisado. Finalmente, se comparan y evalúan dichos modelos. Adicionalmente, del análisis exploratorio se concluye, que es conveniente categorizar la variable zipcode y reagrupar la variable bathroom.
 </p>
+
+<p style = "text-align: justify">
+De los modelos no supervisados (modelos jerárquicos, K-Means y K-medoids), se observa que no hay un patrón definido que permita relacionar de manera clara las características de las casas y la categoría a la que pertenecen según su precio. Con estos métodos no se han obtenido buenos resultados por los motivos que se han comentado.
+</p>
+
+<p style = "text-align: justify">
+En cuanto a la métrica que se ha decidido emplear para la evaluación de los métodos supervisados ha sido la F1-medida, por un lado se ha calculado para las casas caras (categoría C1), y por otro lado, para las baratas (B1). Después se ha calculado la media entre ambas. Adicionalmente, se ha hallado la accuracy, que es una métrica de precisión, que tiene en cuenta los aciertos para ambas categorías.
+</p>
+
+<p style = "text-align: justify">
+Despues de implementar los modelos supervisados, se concluye que el mejor modelo según la métrica considerada es el Random Forest, con aproximadamente una F1-medida de 0.9, seguido del KNN y el SVM con una F-medida muy similar aproximada de 0.88. En último lugar, se sitúa el árbol de decisión con 0.8.
+</p>
+
+## Líneas futuras
+
+
+- <p style = "text-align: justify">Implentación de modelos no supervisados basados en similaridad con otras distancias diferentes a la euclidea. </p>
+
+- <p style = "text-align: justify">Ajuste de hiperparámetros para algunos modelos para los que no se ha considerado hasta el momento. </p>
+
+- <p style = "text-align: justify">Nuevas categorizaciones de price, agrupando por zipcode, considerando a su vez, la agrupación de zipcodes en función de lat y long. </p>
+
+- <p style = "text-align: justify">Tener en cuenta algunas variables no consideradas hasta el momento como la fecha de venta de las casa (date). </p>
 
 
