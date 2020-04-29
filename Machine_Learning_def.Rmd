@@ -1201,7 +1201,7 @@ cat(c('Accuracy: ', accuracy_knn_validacion), '\n')
 
 ```
 
-## Decision Trees
+## Decision Tree
 
 <p style = "text-align: justify">
 Los árboles de decisión son un método usado en distintas disciplinas como modelo de predicción. Este método es similar a diagramas de flujo, en los que llegamos a puntos donde se toman decisiones de acuerdo a una regla. De manera general, lo que hace este algoritmo es encontrar la variable independiente que mejor separa nuestros datos en grupos, que corresponden con las categorías de la variable objetivo, en nuestro caso casas caras frente a baratas.
@@ -1235,7 +1235,7 @@ fancyRpartPlot(decisiontree_model, caption='')
 ```
 
 <p style = "text-align: justify">
-El árbol obtenido con los parámetros indicados considera que las variables zona y log_sqft_living son las más importantes para realizar la clasificación. A continuación, se evalúa este modelo y el resultado para la F1-medida y accuracy es de 0.81.
+A continuación, se evalúa este modelo y el resultado para la F1-medida y accuracy es de 0.81.
 </p>
 
 ```{r}
@@ -1321,7 +1321,7 @@ cat(c('Accuracy: ', F_dt_validacion), '\n')
 ## Random Forest
 
 <p style = "text-align: justify">
-Los Random forests son una combinación de árboles predictores tal que cada árbol depende de los valores de un vector aleatorio probado independientemente y con la misma distribución para cada uno de estos. Es una modificación sustancial de bagging que construye una larga colección de árboles no correlacionados y luego los promedia.
+Los Random forest son una combinación de árboles predictores tal que cada árbol depende de los valores de un vector aleatorio probado independientemente y con la misma distribución para cada uno de estos. Es una modificación sustancial de bagging que construye una larga colección de árboles no correlacionados y luego los promedia.
 </p>
 
 ### Train
@@ -1444,7 +1444,7 @@ Una máquina de vectores de soporte (SVM) es un algoritmo de aprendizaje supervi
 </p>
 
 <p style = "text-align: justify">
-La función **svm** de la librería **e1071**, toma como parámatros el kernel a emplear (en nuestro caso se usa un kernel lineal, **linear**), el coste (**cost**) para ajustar el número de vectores soporte y **probability** para indicar si el modelo debe permitir predicciones de probabilidad.
+La función **svm** de la librería **e1071**, toma como parámatros el kernel a emplear (en nuestro caso se usa un kernel radial), el coste (**cost**) para ajustar el número de vectores soporte y **probability** para indicar si el modelo debe permitir predicciones de probabilidad.
 </p>
 
 
@@ -1591,7 +1591,7 @@ ggplot(data=models_cross, aes(x=reorder(Modelo,F_Medida_train), y=F_Medida_train
 ```
 
 <p style = "text-align: justify">
-El mejor modelo según la métrica de evaluación considerada (F1-medida para las casas caras y las baratas) es el Random Forest y el peor el Decision Tree, si bien es cierto que todos ellos obtienen un resultado aceptable, entre 0.84 y 0.9.
+El mejor modelo según la métrica de evaluación considerada (F1-medida para las casas caras y las baratas) es el Random Forest y el peor el Decision Tree, si bien es cierto que todos ellos obtienen un resultado aceptable, entre 0.81 y 0.9.
 </p>
 
 # Curva ROC
@@ -1661,7 +1661,7 @@ En cuanto a la métrica que se ha decidido emplear para la evaluación de los m�
 </p>
 
 <p style = "text-align: justify">
-Despues de implementar los modelos supervisados, se concluye que el mejor modelo según la métrica considerada es el Random Forest, con aproximadamente una F1-medida de 0.9, seguido del KNN y el SVM con una F-medida muy similar aproximada de 0.88. En último lugar, se sitúa el árbol de decisión con 0.8.
+Despues de implementar los modelos supervisados, se concluye que el mejor modelo según la métrica considerada es el Random Forest, con aproximadamente una F1-medida de 0.9, seguido del KNN y el SVM con una F-medida muy similar aproximada de 0.88. En último lugar, se sitúa el árbol de decisión con 0.81.
 </p>
 
 ## Líneas futuras
@@ -1673,6 +1673,6 @@ Despues de implementar los modelos supervisados, se concluye que el mejor modelo
 
 - <p style = "text-align: justify">Nuevas categorizaciones de price, agrupando por zipcode, considerando a su vez, la agrupación de zipcodes en función de lat y long. </p>
 
-- <p style = "text-align: justify">Tener en cuenta algunas variables no consideradas hasta el momento como la fecha de venta de las casa (date). </p>
+- <p style = "text-align: justify">Tener en cuenta algunas variables no consideradas hasta el momento como la fecha de venta de las casas (date). </p>
 
 
