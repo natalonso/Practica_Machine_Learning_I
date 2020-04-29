@@ -795,7 +795,7 @@ La métrica que se ha considerado para evaluar los modelos es la F1-medida, por 
 
 $$\frac{\text{F1-medida }_{caras} + \text{F1-medida }_{baratas}}{2}$$
   
-```{r, include = FALSE}
+```{r}
 
 predicciones <- ifelse(test = model_glm$fitted.values > 0.5, yes = 1, no = 0)
 
@@ -1075,18 +1075,18 @@ rango=1:k_maximo
 f1_modelos=c()
 
 for (i in rango){
-knn_3=knn.cv(scale(datos_train_numeric[,c(1,2,4,5)]), cl=as.factor(datos_train_limpio$price_categ1),k=i)
-tabla=table(datos_train_limpio$price_categ1,knn_3)
-# f1 casas caras
-pred_means_caras=tabla[2,2]/(tabla[2,2]+tabla[1,2])
-rec_means_caras=tabla[2,2]/(tabla[2,2]+tabla[2,1])
-f1_caras=(2*pred_means_caras*rec_means_caras)/(pred_means_caras+rec_means_caras)
-# f1 casas baratas
-pred_means_baratas=tabla[1,1]/(tabla[1,1]+tabla[2,1])
-rec_means_baratas=tabla[1,1]/(tabla[1,1]+tabla[1,2])
-f1_baratas=(2*pred_means_baratas*rec_means_baratas)/(pred_means_baratas+rec_means_baratas)
-f1_total = (f1_baratas + f1_caras)/2
-f1_modelos=c(f1_modelos,f1_total)
+  knn_3=knn.cv(scale(datos_train_numeric[,c(1,2,4,5)]), cl=as.factor(datos_train_limpio$price_categ1),k=i)
+  tabla=table(datos_train_limpio$price_categ1,knn_3)
+  # f1 casas caras
+  pred_means_caras=tabla[2,2]/(tabla[2,2]+tabla[1,2])
+  rec_means_caras=tabla[2,2]/(tabla[2,2]+tabla[2,1])
+  f1_caras=(2*pred_means_caras*rec_means_caras)/(pred_means_caras+rec_means_caras)
+  # f1 casas baratas
+  pred_means_baratas=tabla[1,1]/(tabla[1,1]+tabla[2,1])
+  rec_means_baratas=tabla[1,1]/(tabla[1,1]+tabla[1,2])
+  f1_baratas=(2*pred_means_baratas*rec_means_baratas)/(pred_means_baratas+rec_means_baratas)
+  f1_total = (f1_baratas + f1_caras)/2
+  f1_modelos=c(f1_modelos,f1_total)
 }
 
 
