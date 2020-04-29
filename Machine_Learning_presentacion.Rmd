@@ -594,7 +594,7 @@ text(prcomp(datos_train_numeric, scale = T)$x[,1:2], as.character(datos_train_li
 ```
 
 <p style = "text-align: justify">
-A continuación se va a aplicar el método de agrupamiento K-means, al igual que en el método anterior se le pasa la matriz de distacias y se van a agrupar los datos en dos conjuntos:
+A continuación se va a aplicar el método de agrupamiento K-means, al igual que en el método anterior se le pasa la matriz de distancias y se van a agrupar los datos en dos conjuntos:
 </p>
 
 ```{r}
@@ -917,7 +917,9 @@ visreg(model_gam_categ)
 
 ```
 
-Se evalúa este modelo mediante el cálculo de la diferencia entre el precio predicho y el observado. Para el caso de train, la diferencia media entre el precio real y el predicho es de 118.300\$; para test es de 120.500\$ y para valicación 116.000\$.
+<p style = "text-align: justify">
+La F1-medida global obtenida para este modelo es de 0.85.
+</p>
 
 ```{r}
 
@@ -1149,7 +1151,7 @@ cat(c('Accuracy: ', accuracy_knn_train), '\n')
 ```
 
 <p style = "text-align: justify">
-Como los valores de k óptimos son muy parecidos entre las diferentes técnicas usadas para determinar este parámetro, se elige $k=14$, con los que se obtiene una F1-medida y accuracy de 0.88.
+Con el valor de k establecido, se obtiene una F1-medida y accuracy de 0.88.
 </p>
 
 
