@@ -230,7 +230,7 @@ Se van a realizar transformaciones de un conjunto de variables, estas transforma
 ### Transformaciones datos Train
 
 <p style = "text-align: justify">
-Se realizan las transformaciones anteriormente mencionada y se eliminan outliers:
+Se realizan las transformaciones anteriormente mencionadas y se eliminan outliers:
 </p>
 
 ```{r, fig.align='center', warning=FALSE}
@@ -514,7 +514,7 @@ Se observa, como la componente 1 está dando un peso de 0.51 a bedrooms, 0.58 a 
 # Métodos de agrupamiento-No supervisado
 
 <p style = "text-align: justify">
-A continuación, se implementan tres métodos de agrupamiento no supervisado. Primero, un **método jerárquico** para averiguar (si es posible) la cantidad adecuada de clústers y, a continuación, **K-Means** y **K-Medoids**. La agrupación es una técnica para agrupar puntos de datos similares en un grupo y separar las diferentes observaciones en diferentes grupos, de forma que un mismo cluster agrupe casas con características homogéneas que se diferencien en cierta medida del resto de clústers.
+A continuación, se implementan tres métodos de agrupamiento no supervisado. Primero, un **método jerárquico** para averiguar (si es posible) la cantidad adecuada de clústers y, a continuación, **K-Means** y **K-Medoids**. La agrupación es una técnica para agrupar puntos de datos similares en un grupo y separar las diferentes observaciones en diferentes grupos, de forma que un mismo clúster agrupe casas con características homogéneas que se diferencien en cierta medida del resto de clústers.
 </p>
 
 ## Clúster Jerárquico
@@ -572,7 +572,7 @@ table(datos_train_limpio$price_categ1, grupos10)
 ```
 
 <p style = "text-align: justify">
-Se concluye que la agrupación en dos clases está muy descompensada, obteniendo un total de 15.109 casas en el grupo 1 y 10 en el grupo 2 y lo mismo sucede con 10 grupos. Dados estos resultados, se decide que no es un método adecuado para los datos con los que contamos y por tanto, no se evaluan los conjuntos de test y validación.
+Se concluye que la agrupación en dos clases está muy descompensada, obteniendo un total de 15.109 casas en el grupo 1 y 10 en el grupo 2 y lo mismo sucede con 10 grupos. Dados estos resultados, se decide que no es un método adecuado para los datos con los que contamos y por tanto, no se evalúan los conjuntos de test y validación.
 </p>
 
 ## Clúster no Jerárquico- K-Means
@@ -661,7 +661,7 @@ aggregate(datos_train_numeric[,-c(4,5)],by=list(model_km10$cluster), mean)
 ```
 
 
-Como se concluye de las dos tablas anteriores, los diferentes clústeres agrupan observaciones con un número medio de habitaciones, y un log_sqft_living y log_lot con valores medios muy similares. De esto se concluye que la agrupación no está teniendo buenos resultados.
+Como se concluye de las dos tablas anteriores, los diferentes clústers agrupan observaciones con un número medio de habitaciones, y un log_sqft_living y log_lot con valores medios muy similares. De esto se concluye que la agrupación no está teniendo buenos resultados.
 
 
 ```{r}
