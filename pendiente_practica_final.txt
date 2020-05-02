@@ -3,7 +3,10 @@
 PENDIENTE MACHINE LEARNING I
 #############################
 
--Redactar conclusiones.
+-Añadir la diferencia entre train.knn y tune.
+-Cambiar las tasas de la ROC.
+-Hacer validación solo para el modelo elegido.
+-Ver si añadimos o mejoramos algo más.
 
 #############################
 GAM
