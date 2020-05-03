@@ -1052,7 +1052,7 @@ cat(c('Valor óptimo de k: ', which.max(f1_modelos)))
 ```
 
 <p style = "text-align: justify">
-De la primer forma obtenemos un valor óptimo de $k=20$, del segundo modo a partir de aproximadamente $k=23$ el error es muy pequeño, y de la forma manual, concluimos que el mejor valor de k en función de la F1-medida es de $k=14$. Finalmente, elegimos el valor de $k=14$, implementamos el modelo y lo evaluamos.
+De la primera forma obtenemos un valor óptimo de $k=20$, del segundo modo a partir de aproximadamente $k=23$ el error es muy pequeño, y de la forma manual, concluimos que el mejor valor de k en función de la F1-medida es de $k=14$. Finalmente, elegimos el valor de $k=14$, implementamos el modelo y lo evaluamos.
 </p>
 
 ```{r}
@@ -1163,8 +1163,6 @@ decisiontree_model=rpart(price_categ1~log_sqft_categ+zona+log_lot,
                          parms=list(split="gini"),
                          control = rpart.control(cp = 0.005, maxdepth = 4, minbucket = 400))
 
-# print(decisiontree_model)
-
 fancyRpartPlot(decisiontree_model, caption='')
 
 ```
@@ -1269,7 +1267,7 @@ print(randomforest_model)
 ```
 
 <p style = "text-align: justify">
-Después de implementar el modelo, se evalua, obteniendo una F1-medida y accuracy de 0.9, el mejor resultado obtenido hasta el momento.
+Después de implementar el modelo, se evalúa, obteniendo una F1-medida y accuracy de 0.9, el mejor resultado obtenido hasta el momento.
 </p>
 
 ```{r}
@@ -1434,7 +1432,7 @@ cat(c('Accuracy: ', accuracy_svm_test), '\n')
 # Evaluación y comparación de modelos
 
 <p style = "text-align: justify">
-Una vez que se han entrenado y optimizado distintos modelos, se tiene que identificar cuál de ellos consigue mejores resultados para el problema en cuestión, en este caso, predecir si una casa es barata o cara. Con los datos disponibles, existen dos formas de comparar los modelos. Si bien las dos no tienen por qué dar los mismos resultados, son complementarias a la hora de tomar una decisión final.
+Una vez que se han entrenado y optimizado distintos modelos, se tiene que identificar cuál de ellos consigue mejores resultados para el problema en cuestión, en este caso, predecir si una casa es barata o cara.
 </p>
 
 ```{r}
@@ -1455,7 +1453,7 @@ ggplot(data=models_cross, aes(x=reorder(Modelo,F_Medida_train), y=F_Medida_train
 ```
 
 <p style = "text-align: justify">
-El mejor modelo según la métrica de evaluación considerada (F1-medida para las casas caras y las baratas) es el Random Forest y el peor el Decision Tree, si bien es cierto que todos ellos obtienen un resultado aceptable, entre 0.81 y 0.9. Además, también se puede concluir que ningún modelos está sobreajustando ya que los resultados de la evaluación para train y test es muy similar.
+El mejor modelo según la métrica de evaluación considerada (F1-medida para las casas caras y las baratas) es el Random Forest y el peor el Decision Tree, si bien es cierto que todos ellos obtienen un resultado aceptable, entre 0.81 y 0.9. Además, también se puede concluir que ningún modelo está sobreajustando ya que los resultados de la evaluación para train y test es muy similar.
 </p>
 
 # Curva ROC
@@ -1548,35 +1546,35 @@ legend(x="left", legend=c("GLM","GAM","KNN","DT","RF","SVM"), fill=c("blue","pur
 set.seed(1234)
 
 # REGRESIÓN LOGÍSTICA
-predictions_glm <- predict(model_glm, newdata = datos_train_rl, type = "response")
-pred_glm <- prediction(predictions_glm, datos_train_rl$price_categ1)
+#predictions_glm <- predict(model_glm, newdata = datos_train_rl, type = "response")
+#pred_glm <- prediction(predictions_glm, datos_train_rl$price_categ1)
 perf_glm <- performance(pred_glm,"spec","sens")
 
 # GAM
-predictions_gam <- predict( model_gam_categ, type = "response")
-predictions_gam <- as.data.frame(predictions_gam)
-pred_gam <- prediction(predictions_gam, datos_train_limpio$price_categ1)
+# predictions_gam <- predict( model_gam_categ, type = "response")
+# predictions_gam <- as.data.frame(predictions_gam)
+# pred_gam <- prediction(predictions_gam, datos_train_limpio$price_categ1)
 perf_gam <- performance(pred_gam,"spec","sens")
 
 # KNN
-predictions_Knn <- knn(scale(datos_train_numeric), scale(datos_train_numeric), cl=datos_train_limpio$price_categ1, k=14, prob = TRUE)
-pred_knn <- prediction(attr(predictions_Knn,"prob"), datos_train_limpio$price_categ1)
+# predictions_Knn <- knn(scale(datos_train_numeric), scale(datos_train_numeric), cl=datos_train_limpio$price_categ1, k=14, prob = TRUE)
+# pred_knn <- prediction(attr(predictions_Knn,"prob"), datos_train_limpio$price_categ1)
 perf_knn <- performance(pred_knn,"spec","sens")
 
 # ARBOL DE DECISION
-predictions_tree <- predict(decisiontree_model, newdata = datos_decision_tree, type = "prob")
-pred_tree = prediction(predictions_tree[,2], datos_decision_tree$price_categ1)
+# predictions_tree <- predict(decisiontree_model, newdata = datos_decision_tree, type = "prob")
+# pred_tree = prediction(predictions_tree[,2], datos_decision_tree$price_categ1)
 perf_tree = performance(pred_tree,"spec","sens")
 
 # RANDOM FOREST
-predictions_rf <- predict(randomforest_model, new_data=datos_train_limpio, type = "prob")
-pred_rf <- prediction(predictions_rf[,2],datos_train_limpio$price_categ1)
+# predictions_rf <- predict(randomforest_model, new_data=datos_train_limpio, type = "prob")
+# pred_rf <- prediction(predictions_rf[,2],datos_train_limpio$price_categ1)
 perf_rf <- performance(pred_rf,"spec","sens")
 
 # SVM
-predictions_svm <- predict(modelo_svm, newdata=datos_train_limpio, probability = TRUE)
-prob_svm<-attr(predictions_svm,"probabilities")
-pred_svm <- prediction(prob_svm[,2], datos_train_limpio$price_categ)
+# predictions_svm <- predict(modelo_svm, newdata=datos_train_limpio, probability = TRUE)
+# prob_svm<-attr(predictions_svm,"probabilities")
+# pred_svm <- prediction(prob_svm[,2], datos_train_limpio$price_categ)
 perf_svm <- performance(pred_svm,"spec","sens")
 
 
@@ -1639,13 +1637,13 @@ En cuanto a la métrica que se ha decidido emplear para la evaluación de los m�
 </p>
 
 <p style = "text-align: justify">
-Despues de implementar los modelos supervisados, se concluye que el mejor modelo según la métrica considerada es el Random Forest, con aproximadamente una F1-medida de 0.9, seguido del KNN y el SVM con una F-medida muy similar aproximada de 0.88. En último lugar, se sitúa el árbol de decisión con 0.81.
+Despues de implementar los modelos supervisados, se concluye que el mejor modelo según la métrica considerada es el Random Forest, con aproximadamente una F1-medida de 0.9, seguido del KNN y el SVM con una F1-medida muy similar aproximada de 0.88. En último lugar, se sitúa el árbol de decisión con 0.81.
 </p>
 
 ## Líneas futuras
 
 
-- <p style = "text-align: justify">Implentación de modelos no supervisados basados en similaridad con otras distancias diferentes a la euclidea. </p>
+- <p style = "text-align: justify">Implementación de modelos no supervisados basados en similaridad con otras distancias diferentes a la euclidea. </p>
 
 - <p style = "text-align: justify">Ajuste de hiperparámetros para algunos modelos para los que no se ha considerado hasta el momento. </p>
 
