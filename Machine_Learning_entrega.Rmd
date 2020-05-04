@@ -660,9 +660,9 @@ aggregate(datos_train_numeric[,-c(4,5)],by=list(model_km10$cluster), mean)
 
 ```
 
-
+<p style = "text-align: justify">
 Como se concluye de las dos tablas anteriores, los diferentes clústers agrupan observaciones con un número medio de habitaciones, y un log_sqft_living y log_lot con valores medios muy similares. De esto se concluye que la agrupación no está teniendo buenos resultados.
-
+</p>
 
 ```{r}
 par(mfrow=c(1,2))
@@ -1247,8 +1247,10 @@ randomforest_model_all=randomForest(price_categ1~.,
                                 mtry=6, 
                                 replace = TRUE)
 randomforest_model_all$importance
-print(randomforest_model_all)
 ```
+
+
+De la implementación del Random Forest incluyendo todas las variables, se puede observar la importancia de cada una de ellas. Las variables con mayor importancia son: log_sqft_living, zona, lat, long y log_lot. Algunos modelos se han implementado teniendo en cuenta esta información.
 
 ```{r}
 set.seed(1234)
@@ -1455,8 +1457,9 @@ El mejor modelo según la métrica de evaluación considerada (F1-medida para la
 
 # Curva ROC
 
+<p style = "text-align: justify">
 Otra forma de evaluar los modelos es a través de la curva ROC. En primer lugar vamos a analizar la relación entre la F1-medida para las casas baratas y la F1-medida para las caras (dado que es la métrica elegida). En segundo lugar para comparar los resultados, se calcula la relación entre sensibilidad (true positive rate) y especificidad (true negative rate). En ambos casos se concluye que el modelo que obtiene mejores resultados es el Random Forest.
-
+</p>
 
 ```{r}
 
@@ -1578,7 +1581,9 @@ legend(x="right", legend=c("GLM","GAM","KNN","DT","RF","SVM"), fill=c("blue","pu
 
 # Selección del modelo y validación
 
+<p style = "text-align: justify">
 Finalmente, al comparar los modelos concluimos que el mejor es el Random Forest, además la diferencia entre la F1-medida en train y test, es muy pequeña (0.001). Por último, realizamos la validación de este modelo:
+</p>
 
 ```{r}
 
@@ -1602,6 +1607,9 @@ accuracy_rf_validacion = (tabla_validacion_randomforest[1,1]+tabla_validacion_ra
 cat(c('Accuracy: ', accuracy_rf_validacion), '\n')
 ```
 
+<p style = "text-align: justify">
+A través de la validación realizada para el modelo seleccionado, la F1-medida global es de 0.89 como cabría esperar. La diferencia entre los resultados de la F1-medida para train, test y validación son muy similares, por lo que no se observa sobreajuste. Por lo tanto, se concluye que la selección del mejor modelo ha sido adecuada.
+</p>
 
 # Conclusiones y líneas futuras
 
